@@ -105,6 +105,12 @@ export default function Home() {
         <h1 className="text-2xl sm:text-3xl font-black text-amber-400 tracking-wider">GO RAPID</h1>
         <span className="text-xs px-3 py-1 bg-slate-800 text-slate-300 rounded-full border border-slate-700 flex items-center gap-1.5 shadow-sm">
           🔒 Stripe Live Sandbox
+          <a 
+  href="/login" 
+  className="ml-4 px-4 py-2 bg-yellow-400 text-gray-900 font-semibold text-sm rounded-lg hover:bg-yellow-500 transition shadow-md"
+>
+  Sign In
+</a>
         </span>
       </div>
 
