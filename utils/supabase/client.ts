@@ -6,3 +6,6 @@ export function createClient() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   )
 }
+
+// Export pre-initialized client for pages using direct `supabase` import
+export const supabase = createClient()
