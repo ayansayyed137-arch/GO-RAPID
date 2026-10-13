@@ -1,18 +1,51 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Navbar from '@/components/Navbar'
+import { createClient } from '@/utils/supabase/client'
+
+interface Ride {
+  id: string
+  pickup: string
+  dropoff: string
+  distance: number
+  amount: number
+  created_at: string
+  status: string
+}
 
 export default function Home() {
   const [pickup, setPickup] = useState('')
   const [dropoff, setDropoff] = useState('')
-  const [distance, setDistance] = useState<number>(10) // default 10 km
+  const [distance, setDistance] = useState<number>(10)
   const [loading, setLoading] = useState(false)
+  const [rides, setRides] = useState<Ride[]>([])
+  const supabase = createClient()
 
-  // Rate Calculation: Base Fare ₹50 + ₹15 per KM
+  // Base rate calculation
   const ratePerKm = 15
   const baseFare = 50
   const calculatedFare = Math.round(baseFare + distance * ratePerKm)
+
+  // Fetch Ride History from Supabase
+  const fetchRideHistory = async () => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+
+    const { data, error } = await supabase
+      .from('rides')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+
+    if (!error && data) {
+      setRides(data)
+    }
+  }
+
+  useEffect(() => {
+    fetchRideHistory()
+  }, [])
 
   const handleCheckout = async () => {
     if (!pickup || !dropoff) {
@@ -22,16 +55,39 @@ export default function Home() {
 
     setLoading(true)
     try {
+      const { data: { user } } = await supabase.auth.getUser()
+
+      if (!user) {
+        alert('Kripya pehle Sign In karein!')
+        setLoading(false)
+        return
+      }
+
+      // Save Ride Details to Supabase First
+      const { error: dbError } = await supabase.from('rides').insert([
+        {
+          user_id: user.id,
+          pickup,
+          dropoff,
+          distance,
+          amount: calculatedFare,
+          status: 'Pending',
+        },
+      ])
+
+      if (dbError) {
+        console.error('Database Error:', dbError)
+      }
+
+      // Proceed to Stripe Payment
       const res = await fetch('/api/checkout', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-          pickup, 
-          dropoff, 
-          distance, 
-          amount: calculatedFare // Dynamic calculated price sent to Stripe
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          pickup,
+          dropoff,
+          distance,
+          amount: calculatedFare,
         }),
       })
 
@@ -68,7 +124,7 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Right Side: Dynamic Booking Form */}
+          {/* Right Side: Booking Form */}
           <div className="bg-[#111827] p-6 rounded-2xl border border-gray-800 shadow-xl">
             <h2 className="text-xl font-bold mb-4 text-white">Book & Pay via Distance</h2>
 
@@ -95,7 +151,6 @@ export default function Home() {
                 />
               </div>
 
-              {/* Distance Input */}
               <div>
                 <div className="flex justify-between items-center mb-1">
                   <label className="block text-xs font-medium text-gray-400">Estimated Distance (KM)</label>
@@ -111,7 +166,6 @@ export default function Home() {
                 />
               </div>
 
-              {/* Price Calculation Breakdown */}
               <div className="bg-[#1f2937]/50 p-4 rounded-xl border border-gray-800 space-y-1">
                 <div className="flex justify-between text-xs text-gray-400">
                   <span>Base Fare</span>
@@ -139,6 +193,48 @@ export default function Home() {
           </div>
 
         </div>
+
+        {/* Dynamic Ride History Section */}
+        <div className="mt-8 bg-[#111827] p-6 rounded-2xl border border-gray-800 shadow-xl">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-bold text-yellow-400">Your Ride History</h3>
+            <button
+              onClick={fetchRideHistory}
+              className="bg-gray-800 text-xs px-3 py-1.5 rounded-lg border border-gray-700 text-gray-300 hover:bg-gray-700 transition"
+            >
+              🔄 Refresh
+            </button>
+          </div>
+
+          {rides.length === 0 ? (
+            <p className="text-sm text-gray-500 text-center py-6">No recent rides found.</p>
+          ) : (
+            <div className="space-y-3">
+              {rides.map((ride) => (
+                <div
+                  key={ride.id}
+                  className="flex justify-between items-center p-4 bg-[#1f2937] rounded-xl border border-gray-800"
+                >
+                  <div>
+                    <p className="font-semibold text-sm text-white">
+                      {ride.pickup} ➔ {ride.dropoff}
+                    </p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      Distance: {ride.distance} KM • {new Date(ride.created_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-bold text-yellow-400">₹{ride.amount}</p>
+                    <span className="text-[10px] bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full border border-green-500/30">
+                      {ride.status}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
       </div>
     </main>
   )
