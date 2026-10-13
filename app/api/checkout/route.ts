@@ -1,34 +1,22 @@
-import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'dummy_key_for_build')
 
 export async function POST(req: Request) {
-  // ... aapka baaki code
-}
-export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => null)
     
-    if (!body || !body.pickup || !body.dropoff) {
-      return NextResponse.json(
-        { error: 'Pickup and dropoff locations are required' },
-        { status: 400 }
-      )
-    }
-
-    const { pickup, dropoff } = body
-
-    // Create Stripe Checkout Session
+    // Yahan aapka baki checkout logic aayega (e.g. checkout session creation)
     const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
       line_items: [
         {
           price_data: {
             currency: 'inr',
             product_data: {
-              name: `GO RAPID Ride: ${pickup} to ${dropoff}`,
+              name: 'Ride Booking',
             },
-            unit_amount: 25000, // ₹250.00
+            unit_amount: 10000, // 100 INR
           },
           quantity: 1,
         },
@@ -38,11 +26,8 @@ export async function POST(req: Request) {
       cancel_url: `${req.headers.get('origin')}/?canceled=true`,
     })
 
-    return NextResponse.json({ url: session.url })
+    return Response.json({ url: session.url })
   } catch (err: any) {
-    return NextResponse.json(
-      { error: err.message || 'Something went wrong with Stripe' },
-      { status: 500 }
-    )
+    return Response.json({ error: err.message }, { status: 500 })
   }
 }
