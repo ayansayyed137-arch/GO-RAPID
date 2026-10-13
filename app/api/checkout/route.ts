@@ -5,10 +5,8 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'dummy_key_for_build'
 export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => null)
-    
-    // Yahan aapka baki checkout logic aayega (e.g. checkout session creation)
+
     const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
       line_items: [
         {
           price_data: {
