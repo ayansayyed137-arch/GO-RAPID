@@ -14,7 +14,7 @@ export async function POST(req: Request) {
             product_data: {
               name: 'Ride Booking',
             },
-            unit_amount: 10000, // 100 INR
+            unit_amount: 25000, // 250 INR
           },
           quantity: 1,
         },
