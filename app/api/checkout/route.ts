@@ -6,9 +6,10 @@ export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => ({}))
     
-    // Read dynamic amount passed from frontend (Default 250 if not provided)
-    const amountInRupees = body?.amount || 250
-    const unitAmount = Math.round(amountInRupees * 100) // Convert INR to Paise for Stripe
+    // Read dynamic amount passed from frontend body (e.g., 170)
+    // Agar amount pass nahi hota tabhi fallback 250 rahega
+    const amountInRupees = body?.amount ?? 250
+    const unitAmount = Math.round(Number(amountInRupees) * 100) // Convert INR to Paise for Stripe
 
     const session = await stripe.checkout.sessions.create({
       line_items: [
