@@ -4,7 +4,11 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'dummy_key_for_build'
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json().catch(() => null)
+    const body = await req.json().catch(() => ({}))
+    
+    // Read dynamic amount passed from frontend (Default 250 if not provided)
+    const amountInRupees = body?.amount || 250
+    const unitAmount = Math.round(amountInRupees * 100) // Convert INR to Paise for Stripe
 
     const session = await stripe.checkout.sessions.create({
       line_items: [
@@ -12,9 +16,10 @@ export async function POST(req: Request) {
           price_data: {
             currency: 'inr',
             product_data: {
-              name: 'Ride Booking',
+              name: `Ride Booking (${body.distance || 0} KM)`,
+              description: `From ${body.pickup || 'Pickup'} to ${body.dropoff || 'Dropoff'}`,
             },
-            unit_amount: 25000, // 250 INR
+            unit_amount: unitAmount,
           },
           quantity: 1,
         },
