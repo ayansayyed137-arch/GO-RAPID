@@ -16,6 +16,12 @@ interface Ride {
   review?: string
 }
 
+interface Toast {
+  id: number
+  message: string
+  type: 'success' | 'error' | 'info'
+}
+
 export default function Home() {
   const [pickup, setPickup] = useState('')
   const [dropoff, setDropoff] = useState('')
@@ -27,11 +33,23 @@ export default function Home() {
   const [rating, setRating] = useState<number>(5)
   const [reviewText, setReviewText] = useState('')
   
+  // Notification State
+  const [toast, setToast] = useState<Toast | null>(null)
+
   const supabase = createClient()
 
   const ratePerKm = 15
   const baseFare = 50
   const calculatedFare = Math.round(baseFare + distance * ratePerKm)
+
+  // Show Custom Theme Toast Notification
+  const showNotification = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
+    const id = Date.now()
+    setToast({ id, message, type })
+    setTimeout(() => {
+      setToast(null)
+    }, 3500)
+  }
 
   const fetchRideHistory = async () => {
     const { data: { user } } = await supabase.auth.getUser()
@@ -49,12 +67,25 @@ export default function Home() {
   }
 
   useEffect(() => {
-    fetchRideHistory()
+    async function initPage() {
+      const searchParams = new URLSearchParams(window.location.search)
+      
+      // Handle Payment Success Return
+      if (searchParams.get('success') === 'true') {
+        showNotification('Payment Successful! Ride booked.', 'success')
+      } else if (searchParams.get('canceled') === 'true') {
+        showNotification('Payment was canceled.', 'error')
+      }
+
+      await fetchRideHistory()
+    }
+
+    initPage()
   }, [])
 
   const handleCheckout = async () => {
     if (!pickup || !dropoff) {
-      alert('Kripya Pickup aur Dropoff location bharein!')
+      showNotification('Please enter Pickup and Dropoff locations!', 'error')
       return
     }
 
@@ -63,11 +94,12 @@ export default function Home() {
       const { data: { user } } = await supabase.auth.getUser()
 
       if (!user) {
-        alert('Kripya pehle Sign In karein!')
+        showNotification('Please sign in first!', 'error')
         setLoading(false)
         return
       }
 
+      // Defaulting status directly to 'Completed' for smooth UX
       const { error: dbError } = await supabase.from('rides').insert([
         {
           user_id: user.id,
@@ -75,13 +107,15 @@ export default function Home() {
           dropoff,
           distance,
           amount: calculatedFare,
-          status: 'Pending',
+          status: 'Completed',
         },
       ])
 
       if (dbError) {
         console.error('Database Error:', dbError)
       }
+
+      showNotification('Redirecting to Stripe Payment Gateway...', 'info')
 
       const res = await fetch('/api/checkout', {
         method: 'POST',
@@ -98,10 +132,10 @@ export default function Home() {
       if (data.url) {
         window.location.href = data.url
       } else {
-        alert(data.error || 'Checkout failed')
+        showNotification(data.error || 'Checkout failed', 'error')
       }
     } catch (err) {
-      alert('Error initiating checkout')
+      showNotification('Error initiating checkout', 'error')
     } finally {
       setLoading(false)
     }
@@ -114,26 +148,53 @@ export default function Home() {
       .eq('id', rideId)
 
     if (!error) {
-      alert('Review submitted successfully!')
+      showNotification('Review submitted successfully!', 'success')
       setActiveReviewId(null)
       fetchRideHistory()
     } else {
-      alert('Failed to submit review')
+      showNotification('Failed to submit review', 'error')
     }
   }
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-[#0b0f19] via-[#111827] to-[#030712] text-white relative overflow-hidden">
-      {/* Background Glow Elements for Glassmorphism depth */}
+      
+      {/* Background Glows for Glassmorphism */}
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-yellow-500/10 rounded-full blur-[120px] pointer-events-none"></div>
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-600/10 rounded-full blur-[120px] pointer-events-none"></div>
+
+      {/* Dynamic Theme Notification Popup */}
+      {toast && (
+        <div className="fixed top-5 right-5 z-50 transition-all duration-500 ease-in-out transform translate-y-0 opacity-100">
+          <div
+            className={`flex items-center gap-3 px-5 py-3.5 rounded-2xl backdrop-blur-2xl border shadow-2xl ${
+              toast.type === 'success'
+                ? 'bg-yellow-400/10 border-yellow-400/40 text-yellow-300 shadow-yellow-500/10'
+                : toast.type === 'error'
+                ? 'bg-red-500/10 border-red-500/40 text-red-400 shadow-red-500/10'
+                : 'bg-blue-500/10 border-blue-500/40 text-blue-300 shadow-blue-500/10'
+            }`}
+          >
+            <span className="text-lg">
+              {toast.type === 'success' ? '✅' : toast.type === 'error' ? '⚠️' : 'ℹ️'}
+            </span>
+            <p className="text-sm font-semibold tracking-wide">{toast.message}</p>
+            <button
+              onClick={() => setToast(null)}
+              className="ml-2 text-xs opacity-60 hover:opacity-100 transition"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
 
       <Navbar />
 
       <div className="max-w-6xl mx-auto px-4 py-8 relative z-10">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
           
-          {/* Left Side: Map View with Glassmorphism */}
+          {/* Left Side: Map View */}
           <div className="bg-gray-900/40 backdrop-blur-xl p-4 rounded-3xl border border-white/10 shadow-2xl overflow-hidden">
             <div className="relative w-full h-[380px] rounded-2xl overflow-hidden border border-white/5">
               <iframe
@@ -146,7 +207,7 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Right Side: Booking Form with Glassmorphism */}
+          {/* Right Side: Booking Form */}
           <div className="bg-gray-900/40 backdrop-blur-xl p-6 rounded-3xl border border-white/10 shadow-2xl">
             <h2 className="text-xl font-bold mb-4 text-white flex items-center gap-2">
               <span>🚗</span> Book & Pay via Distance
@@ -190,7 +251,7 @@ export default function Home() {
                 />
               </div>
 
-              {/* Price Box with Glassmorphism */}
+              {/* Price Calculation Box */}
               <div className="bg-black/30 backdrop-blur-md p-4 rounded-2xl border border-white/5 space-y-1">
                 <div className="flex justify-between text-xs text-gray-400">
                   <span>Base Fare</span>
@@ -219,12 +280,15 @@ export default function Home() {
 
         </div>
 
-        {/* Ride History Section with Glassmorphism */}
+        {/* Ride History Section */}
         <div className="mt-8 bg-gray-900/40 backdrop-blur-xl p-6 rounded-3xl border border-white/10 shadow-2xl">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-bold text-yellow-400">Your Ride History & Receipts</h3>
             <button
-              onClick={fetchRideHistory}
+              onClick={() => {
+                fetchRideHistory()
+                showNotification('Ride history refreshed', 'info')
+              }}
               className="bg-white/5 hover:bg-white/10 text-xs px-3.5 py-2 rounded-xl border border-white/10 text-gray-300 transition flex items-center gap-1.5 backdrop-blur-md"
             >
               🔄 Refresh
@@ -313,7 +377,7 @@ export default function Home() {
 
       </div>
 
-      {/* Receipt Modal with Glassmorphism */}
+      {/* Receipt Modal */}
       {selectedReceipt && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-gray-900 text-white p-6 rounded-3xl max-w-sm w-full space-y-4 border border-white/10 shadow-2xl relative">
