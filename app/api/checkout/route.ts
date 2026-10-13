@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'dummy_key_for_build', {
-  apiVersion: '2025-02-28.acacia' as any, // ya jo bhi aapki api version ho
-})
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'dummy_key_for_build')
 
+export async function POST(req: Request) {
+  // ... aapka baaki code
+}
 export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => null)
