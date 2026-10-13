@@ -7,5 +7,5 @@ export function createClient() {
   )
 }
 
-// Export pre-initialized client for pages using direct `supabase` import
+// Direct supabase instance for other pages
 export const supabase = createClient()
