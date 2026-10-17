@@ -4,11 +4,22 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import dynamic from 'next/dynamic'
+
+// Leaflet Map component dynamically imported (SSR bypass ke liye)
+const MapWithNoSSR = dynamic(() => import('@/components/MapComponent'), {
+  ssr: false,
+  loading: () => (
+    <div className="h-[300px] w-full bg-black/40 rounded-2xl flex items-center justify-center border border-white/10">
+      <p className="text-xs text-yellow-400 font-bold animate-pulse">Loading Interactive Map...</p>
+    </div>
+  ),
+})
 
 export default function DashboardPage() {
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-  
+
   // Booking Form States
   const [pickup, setPickup] = useState('')
   const [drop, setDrop] = useState('')
@@ -33,23 +44,18 @@ export default function DashboardPage() {
     getUser()
   }, [supabase, router])
 
-  // Calculate Distance & Price Logic
   const handleFindRides = (e: React.FormEvent) => {
     e.preventDefault()
     if (!pickup || !drop) return
-    
-    // Calculated mock distance
     const randomDist = Math.floor(Math.random() * 15) + 3
     setDistance(randomDist)
   }
 
-  // Calculate Estimated Fare based on vehicle type
   const calculateFare = (dist: number, type: 'auto' | 'mini' | 'sedan') => {
     const baseRates = { auto: 15, mini: 20, sedan: 30 }
     return dist * baseRates[type]
   }
 
-  // Book Ride Handler
   const handleBookRide = async () => {
     if (!distance) return
     setBookingStatus('searching')
@@ -63,20 +69,16 @@ export default function DashboardPage() {
         fare: fare,
         vehicle_type: selectedCab,
         status: 'Completed',
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
       }
 
-      // Save to Supabase DB
-      const { data, error } = await supabase.from('rides').insert([
-        { ...rideData, user_id: user?.id }
-      ]).select()
+      await supabase.from('rides').insert([{ ...rideData, user_id: user?.id }])
 
       setBookingStatus('booked')
       setActiveRide(rideData)
     }, 2000)
   }
 
-  // Handle Logout
   const handleLogout = async () => {
     await supabase.auth.signOut()
     router.push('/login')
@@ -92,7 +94,6 @@ export default function DashboardPage() {
 
   return (
     <main className="min-h-screen bg-[#0b0f19] text-white p-4 md:p-8 relative overflow-hidden">
-      {/* Background Lighting Effects */}
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-yellow-500/10 rounded-full blur-[120px] pointer-events-none"></div>
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-600/10 rounded-full blur-[120px] pointer-events-none"></div>
 
@@ -106,14 +107,12 @@ export default function DashboardPage() {
           </div>
 
           <div className="flex items-center gap-3">
-            {/* View Ride History Button */}
             <Link href="/rides">
               <button className="bg-yellow-400 hover:bg-yellow-500 text-black font-bold px-4 py-2.5 rounded-xl shadow-lg shadow-yellow-500/10 transition flex items-center gap-2 text-xs md:text-sm">
                 View Ride History & Receipts 🛺
               </button>
             </Link>
 
-            {/* Logout Button */}
             <button
               onClick={handleLogout}
               className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 font-semibold px-4 py-2.5 rounded-xl transition text-xs md:text-sm"
@@ -123,11 +122,16 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Ride Booking Card Section */}
+        {/* Ride Booking Card + Leaflet Map */}
         <div className="bg-gray-900/50 backdrop-blur-2xl p-6 md:p-8 rounded-3xl border border-white/10 shadow-2xl space-y-6">
           <div>
             <h2 className="text-xl font-bold text-yellow-400">Book Your Ride</h2>
-            <p className="text-xs text-gray-400 mt-1">Select pickup & destination to check fares and available vehicles</p>
+            <p className="text-xs text-gray-400 mt-1">Select pickup & destination to check fares and view route on map</p>
+          </div>
+
+          {/* Leaflet Interactive Map View */}
+          <div className="overflow-hidden rounded-2xl border border-white/10 shadow-inner">
+            <MapWithNoSSR />
           </div>
 
           <form onSubmit={handleFindRides} className="space-y-4">
@@ -165,9 +169,9 @@ export default function DashboardPage() {
             </button>
           </form>
 
-          {/* Available Cabs & Fare Estimate Section */}
+          {/* Vehicle Selection */}
           {distance && bookingStatus === 'idle' && (
-            <div className="pt-6 border-t border-white/10 space-y-4 animate-fadeIn">
+            <div className="pt-6 border-t border-white/10 space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-bold text-gray-200">Select Vehicle</h3>
                 <span className="text-xs text-yellow-400 font-mono">Distance: ~{distance} KM</span>
@@ -177,7 +181,7 @@ export default function DashboardPage() {
                 {[
                   { id: 'auto', name: 'Auto', icon: '🛺' },
                   { id: 'mini', name: 'Cab Mini', icon: '🚗' },
-                  { id: 'sedan', name: 'Cab Sedan', icon: '🚘' }
+                  { id: 'sedan', name: 'Cab Sedan', icon: '🚘' },
                 ].map((cab) => {
                   const fare = calculateFare(distance, cab.id as any)
                   return (
@@ -208,7 +212,6 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {/* Searching Animation */}
           {bookingStatus === 'searching' && (
             <div className="py-8 text-center space-y-3 border-t border-white/10">
               <div className="w-10 h-10 border-4 border-yellow-400 border-t-transparent rounded-full animate-spin mx-auto"></div>
@@ -216,7 +219,6 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {/* Booking Confirmed State */}
           {bookingStatus === 'booked' && activeRide && (
             <div className="p-6 bg-green-500/10 border border-green-500/30 rounded-2xl text-center space-y-3">
               <span className="text-3xl">✅</span>
