@@ -313,6 +313,12 @@ export default function Home() {
             >
               🔄 Refresh
             </button>
+            <button
+  onClick={() => router.push('/rides')}
+  className="bg-yellow-400 text-black font-bold px-6 py-3 rounded-xl text-xs hover:bg-yellow-500 transition shadow-lg shadow-yellow-500/20"
+>
+  View Ride History & Receipts 🚗
+</button>
           </div>
 
           {rides.length === 0 ? (
