@@ -5,7 +5,7 @@ import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
 
 export default function LoginPage() {
-  const [authMethod, setAuthMethod] = useState<'otp' | 'password'>('password')
+  const [authMethod, setAuthMethod] = useState<'password' | 'otp'>('password')
   const [isSignUp, setIsSignUp] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -17,7 +17,7 @@ export default function LoginPage() {
   const supabase = createClient()
   const router = useRouter()
 
-  // Handle Password Auth
+  // 1. Password Based Auth (Bina OTP Rate Limit Ke Challenge)
   const handlePasswordAuth = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
@@ -28,7 +28,7 @@ export default function LoginPage() {
       if (error) {
         setMessage({ text: error.message, type: 'error' })
       } else {
-        setMessage({ text: 'Account created! Redirecting...', type: 'success' })
+        setMessage({ text: 'Account created! Logging in...', type: 'success' })
         setTimeout(() => {
           router.push('/')
           router.refresh()
@@ -47,7 +47,7 @@ export default function LoginPage() {
     setLoading(false)
   }
 
-  // Handle Send OTP
+  // 2. OTP Based Auth
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
@@ -61,13 +61,12 @@ export default function LoginPage() {
     if (error) {
       setMessage({ text: error.message, type: 'error' })
     } else {
-      setMessage({ text: 'OTP sent! Check your inbox/spam folder.', type: 'success' })
+      setMessage({ text: '6-digit OTP code sent to your email!', type: 'success' })
       setStep('otp')
     }
     setLoading(false)
   }
 
-  // Handle Verify OTP
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
@@ -78,7 +77,7 @@ export default function LoginPage() {
     if (error) {
       setMessage({ text: error.message, type: 'error' })
     } else {
-      setMessage({ text: 'OTP Verified!', type: 'success' })
+      setMessage({ text: 'OTP Verified Successfully!', type: 'success' })
       setTimeout(() => {
         router.push('/')
         router.refresh()
@@ -110,6 +109,7 @@ export default function LoginPage() {
         {/* Tab Switcher */}
         <div className="flex bg-black/40 p-1 rounded-xl mb-6 border border-white/10">
           <button
+            type="button"
             onClick={() => { setAuthMethod('password'); setMessage(null); }}
             className={`w-1/2 py-2 text-xs font-bold rounded-lg transition ${
               authMethod === 'password' ? 'bg-yellow-400 text-black' : 'text-gray-400'
@@ -118,6 +118,7 @@ export default function LoginPage() {
             Password
           </button>
           <button
+            type="button"
             onClick={() => { setAuthMethod('otp'); setMessage(null); }}
             className={`w-1/2 py-2 text-xs font-bold rounded-lg transition ${
               authMethod === 'otp' ? 'bg-yellow-400 text-black' : 'text-gray-400'
@@ -168,51 +169,49 @@ export default function LoginPage() {
               </button>
             </div>
           </form>
+        ) : step === 'email' ? (
+          <form onSubmit={handleSendOtp} className="space-y-4">
+            <div>
+              <label className="block text-xs font-medium text-gray-400 mb-1">Email Address</label>
+              <input
+                type="email"
+                required
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-yellow-400"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-yellow-400 text-black font-bold py-3 rounded-xl hover:bg-yellow-500 transition shadow-lg shadow-yellow-500/20 disabled:opacity-50"
+            >
+              {loading ? 'Sending OTP...' : 'Send OTP Code'}
+            </button>
+          </form>
         ) : (
-          step === 'email' ? (
-            <form onSubmit={handleSendOtp} className="space-y-4">
-              <div>
-                <label className="block text-xs font-medium text-gray-400 mb-1">Email Address</label>
-                <input
-                  type="email"
-                  required
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-yellow-400"
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-yellow-400 text-black font-bold py-3 rounded-xl hover:bg-yellow-500 transition shadow-lg shadow-yellow-500/20 disabled:opacity-50"
-              >
-                {loading ? 'Sending OTP...' : 'Send OTP Code'}
-              </button>
-            </form>
-          ) : (
-            <form onSubmit={handleVerifyOtp} className="space-y-4">
-              <div>
-                <label className="block text-xs font-medium text-gray-400 mb-1">Enter 6-digit OTP</label>
-                <input
-                  type="text"
-                  required
-                  maxLength={6}
-                  placeholder="123456"
-                  value={otp}
-                  onChange={(e) => setOtp(e.target.value)}
-                  className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-center tracking-[0.5em] text-lg font-mono text-yellow-400 focus:outline-none focus:border-yellow-400"
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-yellow-400 text-black font-bold py-3 rounded-xl hover:bg-yellow-500 transition shadow-lg shadow-yellow-500/20 disabled:opacity-50"
-              >
-                {loading ? 'Verifying...' : 'Verify OTP'}
-              </button>
-            </form>
-          )
+          <form onSubmit={handleVerifyOtp} className="space-y-4">
+            <div>
+              <label className="block text-xs font-medium text-gray-400 mb-1">Enter 6-digit OTP</label>
+              <input
+                type="text"
+                required
+                maxLength={6}
+                placeholder="123456"
+                value={otp}
+                onChange={(e) => setOtp(e.target.value)}
+                className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-center tracking-[0.5em] text-lg font-mono text-yellow-400 focus:outline-none focus:border-yellow-400"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-yellow-400 text-black font-bold py-3 rounded-xl hover:bg-yellow-500 transition shadow-lg shadow-yellow-500/20 disabled:opacity-50"
+            >
+              {loading ? 'Verifying...' : 'Verify OTP'}
+            </button>
+          </form>
         )}
       </div>
     </main>
