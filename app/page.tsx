@@ -6,21 +6,28 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
 
-// Leaflet Map component dynamically imported (SSR bypass ke liye)
-const MapWithNoSSR = dynamic(() => import('@/components/MapComponent'), {
-  ssr: false,
-  loading: () => (
-    <div className="h-[300px] w-full bg-black/40 rounded-2xl flex items-center justify-center border border-white/10">
-      <p className="text-xs text-yellow-400 font-bold animate-pulse">Loading Interactive Map...</p>
-    </div>
-  ),
-})
+// Inline Dynamic Import directly with react-leaflet
+const MapContainer = dynamic(
+  () => import('react-leaflet').then((mod) => mod.MapContainer),
+  { ssr: false }
+)
+const TileLayer = dynamic(
+  () => import('react-leaflet').then((mod) => mod.TileLayer),
+  { ssr: false }
+)
+const Marker = dynamic(
+  () => import('react-leaflet').then((mod) => mod.Marker),
+  { ssr: false }
+)
+const Popup = dynamic(
+  () => import('react-leaflet').then((mod) => mod.Popup),
+  { ssr: false }
+)
 
 export default function DashboardPage() {
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
 
-  // Booking Form States
   const [pickup, setPickup] = useState('')
   const [drop, setDrop] = useState('')
   const [distance, setDistance] = useState<number | null>(null)
@@ -47,8 +54,7 @@ export default function DashboardPage() {
   const handleFindRides = (e: React.FormEvent) => {
     e.preventDefault()
     if (!pickup || !drop) return
-    const randomDist = Math.floor(Math.random() * 15) + 3
-    setDistance(randomDist)
+    setDistance(Math.floor(Math.random() * 15) + 3)
   }
 
   const calculateFare = (dist: number, type: 'auto' | 'mini' | 'sedan') => {
@@ -73,7 +79,6 @@ export default function DashboardPage() {
       }
 
       await supabase.from('rides').insert([{ ...rideData, user_id: user?.id }])
-
       setBookingStatus('booked')
       setActiveRide(rideData)
     }, 2000)
@@ -94,12 +99,9 @@ export default function DashboardPage() {
 
   return (
     <main className="min-h-screen bg-[#0b0f19] text-white p-4 md:p-8 relative overflow-hidden">
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-yellow-500/10 rounded-full blur-[120px] pointer-events-none"></div>
-      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-600/10 rounded-full blur-[120px] pointer-events-none"></div>
-
       <div className="max-w-5xl mx-auto space-y-6 relative z-10">
         
-        {/* Top Header Navigation */}
+        {/* Header */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-gray-900/40 backdrop-blur-md p-5 rounded-3xl border border-white/10 shadow-xl">
           <div>
             <h1 className="text-2xl font-black text-yellow-400 tracking-wider">GO RAPID</h1>
@@ -122,16 +124,24 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Ride Booking Card + Leaflet Map */}
+        {/* Card */}
         <div className="bg-gray-900/50 backdrop-blur-2xl p-6 md:p-8 rounded-3xl border border-white/10 shadow-2xl space-y-6">
           <div>
             <h2 className="text-xl font-bold text-yellow-400">Book Your Ride</h2>
             <p className="text-xs text-gray-400 mt-1">Select pickup & destination to check fares and view route on map</p>
           </div>
 
-          {/* Leaflet Interactive Map View */}
-          <div className="overflow-hidden rounded-2xl border border-white/10 shadow-inner">
-            <MapWithNoSSR />
+          {/* Inline Map */}
+          <div className="overflow-hidden rounded-2xl border border-white/10 shadow-inner h-[300px] bg-black/40">
+            <MapContainer center={[19.8762, 75.3433]} zoom={13} scrollWheelZoom={false} className="h-full w-full z-0">
+              <TileLayer
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              />
+              <Marker position={[19.8762, 75.3433]}>
+                <Popup>Your Location</Popup>
+              </Marker>
+            </MapContainer>
           </div>
 
           <form onSubmit={handleFindRides} className="space-y-4">
@@ -169,7 +179,6 @@ export default function DashboardPage() {
             </button>
           </form>
 
-          {/* Vehicle Selection */}
           {distance && bookingStatus === 'idle' && (
             <div className="pt-6 border-t border-white/10 space-y-4">
               <div className="flex items-center justify-between">
