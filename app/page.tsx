@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
 
-// Inline Dynamic Import directly with react-leaflet
+// Inline Dynamic Imports for Leaflet Map (SSR Bypass)
 const MapContainer = dynamic(
   () => import('react-leaflet').then((mod) => mod.MapContainer),
   { ssr: false }
@@ -28,10 +28,11 @@ export default function DashboardPage() {
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
 
+  // Booking Form States (Default vehicle set to 'mini')
   const [pickup, setPickup] = useState('')
   const [drop, setDrop] = useState('')
   const [distance, setDistance] = useState<number | null>(null)
-  const [selectedCab, setSelectedCab] = useState<'auto' | 'mini' | 'sedan'>('auto')
+  const [selectedCab, setSelectedCab] = useState<'mini' | 'sedan'>('mini')
   const [bookingStatus, setBookingStatus] = useState<'idle' | 'searching' | 'booked'>('idle')
   const [activeRide, setActiveRide] = useState<any>(null)
 
@@ -57,8 +58,8 @@ export default function DashboardPage() {
     setDistance(Math.floor(Math.random() * 15) + 3)
   }
 
-  const calculateFare = (dist: number, type: 'auto' | 'mini' | 'sedan') => {
-    const baseRates = { auto: 15, mini: 20, sedan: 30 }
+  const calculateFare = (dist: number, type: 'mini' | 'sedan') => {
+    const baseRates = { mini: 20, sedan: 30 }
     return dist * baseRates[type]
   }
 
@@ -101,7 +102,7 @@ export default function DashboardPage() {
     <main className="min-h-screen bg-[#0b0f19] text-white p-4 md:p-8 relative overflow-hidden">
       <div className="max-w-5xl mx-auto space-y-6 relative z-10">
         
-        {/* Header */}
+        {/* Top Header Navigation */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-gray-900/40 backdrop-blur-md p-5 rounded-3xl border border-white/10 shadow-xl">
           <div>
             <h1 className="text-2xl font-black text-yellow-400 tracking-wider">GO RAPID</h1>
@@ -124,14 +125,14 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Card */}
+        {/* Dashboard Card Container */}
         <div className="bg-gray-900/50 backdrop-blur-2xl p-6 md:p-8 rounded-3xl border border-white/10 shadow-2xl space-y-6">
           <div>
             <h2 className="text-xl font-bold text-yellow-400">Book Your Ride</h2>
             <p className="text-xs text-gray-400 mt-1">Select pickup & destination to check fares and view route on map</p>
           </div>
 
-          {/* Inline Map */}
+          {/* Interactive Leaflet Map */}
           <div className="overflow-hidden rounded-2xl border border-white/10 shadow-inner h-[300px] bg-black/40">
             <MapContainer center={[19.8762, 75.3433]} zoom={13} scrollWheelZoom={false} className="h-full w-full z-0">
               <TileLayer
@@ -179,6 +180,7 @@ export default function DashboardPage() {
             </button>
           </form>
 
+          {/* Vehicle Selection (Mini & Sedan Only) */}
           {distance && bookingStatus === 'idle' && (
             <div className="pt-6 border-t border-white/10 space-y-4">
               <div className="flex items-center justify-between">
@@ -186,9 +188,8 @@ export default function DashboardPage() {
                 <span className="text-xs text-yellow-400 font-mono">Distance: ~{distance} KM</span>
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 gap-4">
                 {[
-                  { id: 'auto', name: 'Auto', icon: '🛺' },
                   { id: 'mini', name: 'Cab Mini', icon: '🚗' },
                   { id: 'sedan', name: 'Cab Sedan', icon: '🚘' },
                 ].map((cab) => {
