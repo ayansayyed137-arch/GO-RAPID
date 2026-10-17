@@ -112,7 +112,7 @@ export default function DashboardPage() {
           <div className="flex items-center gap-3">
             <Link href="/rides">
               <button className="bg-yellow-400 hover:bg-yellow-500 text-black font-bold px-4 py-2.5 rounded-xl shadow-lg shadow-yellow-500/10 transition flex items-center gap-2 text-xs md:text-sm">
-                View Ride History & Receipts 🛺
+                View Ride History & Receipts 🚗
               </button>
             </Link>
 
