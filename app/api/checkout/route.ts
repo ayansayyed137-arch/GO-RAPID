@@ -12,8 +12,8 @@ export async function POST(req: Request) {
     const finalAmount = amount && amount > 0 ? amount : 200
 
     const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
       customer_email: email,
+      automatic_payment_methods: { enabled: true },
       line_items: [
         {
           price_data: {
