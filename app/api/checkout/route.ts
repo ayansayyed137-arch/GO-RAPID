@@ -9,9 +9,9 @@ export async function POST(req: Request) {
   try {
     const { pickup, dropoff, email, distanceKm } = await req.json()
 
-    // Minimum distance default if not provided
+    // Distance multiplier logic (minimum 1 KM)
     const distance = Math.max(distanceKm || 1, 1)
-    const ratePerKm = 19 // ₹19 per KM
+    const ratePerKm = 19 // ₹19 per KM rate
     const totalAmount = distance * ratePerKm
 
     const session = await stripe.checkout.sessions.create({
@@ -25,7 +25,7 @@ export async function POST(req: Request) {
               name: `Ride Booking (${distance} KM)`,
               description: `From ${pickup} to ${dropoff} @ ₹19/KM`,
             },
-            unit_amount: Math.round(totalAmount * 100), // Stripe expects amount in paise
+            unit_amount: Math.round(totalAmount * 100), // Amount in paise for Stripe
           },
           quantity: 1,
         },
