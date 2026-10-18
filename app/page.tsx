@@ -8,8 +8,7 @@ export default function GoRapidDashboard() {
   const [userEmail, setUserEmail] = useState<string>('')
   const [pickup, setPickup] = useState('Harsul')
   const [dropoff, setDropoff] = useState('Kranti chowk')
-  const [rideType, setRideType] = useState('GoMini')
-  const [bookingStatus, setBookingStatus] = useState<string | null>('Cab booked successfully! Your GoMini is arriving shortly at Harsul.')
+  const [bookingStatus, setBookingStatus] = useState<string | null>('Cab booked successfully! Your ride is arriving shortly at Harsul.')
   const [isBooking, setIsBooking] = useState(false)
 
   useEffect(() => {
@@ -33,7 +32,7 @@ export default function GoRapidDashboard() {
 
     setTimeout(() => {
       setIsBooking(false)
-      setBookingStatus(`Cab booked successfully! Your ${rideType} is arriving shortly at ${pickup}.`)
+      setBookingStatus(`Cab booked successfully! Your ride is arriving shortly at ${pickup}.`)
     }, 1200)
   }
 
@@ -58,7 +57,7 @@ export default function GoRapidDashboard() {
 
         <div className="flex items-center space-x-4">
           <span className="text-xs text-gray-400 hidden sm:inline">
-            Logged in as: <strong className="text-white">{userEmail || 'skzainali17@gmail.com'}</strong>
+            Logged in as: <strong className="text-white">{userEmail || 'user@gorapid.com'}</strong>
           </span>
           <button
             onClick={handleLogout}
@@ -108,28 +107,6 @@ export default function GoRapidDashboard() {
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
-                  SELECT RIDE TIER
-                </label>
-                <div className="grid grid-cols-3 gap-2">
-                  {['GoMini', 'GoSedan', 'GoSUV'].map((tier) => (
-                    <button
-                      type="button"
-                      key={tier}
-                      onClick={() => setRideType(tier)}
-                      className={`py-2.5 text-xs font-bold rounded-xl border transition-all cursor-pointer ${
-                        rideType === tier
-                          ? 'bg-[#facc15] text-black border-[#facc15] shadow-lg shadow-[#facc15]/10'
-                          : 'bg-[#1b2333] text-gray-300 border-gray-700/70 hover:border-gray-500'
-                      }`}
-                    >
-                      {tier}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
               <button
                 type="submit"
                 disabled={isBooking}
@@ -145,18 +122,24 @@ export default function GoRapidDashboard() {
           </div>
         </div>
 
-        {/* Right Column: Live Map Radar View */}
+        {/* Right Column: Live Map View */}
         <div className="lg:col-span-2 bg-[#111827]/90 backdrop-blur-xl border border-gray-800/80 rounded-2xl p-6 shadow-2xl flex flex-col justify-between relative overflow-hidden min-h-[400px]">
-          <div className="absolute inset-0 bg-[radial-gradient(#1f2937_1px,transparent_1px)] [background-size:16px_16px] opacity-40 pointer-events-none" />
+          <div className="relative z-10 flex justify-between items-center mb-4">
+            <h3 className="text-lg font-bold text-white">Live Radar & Fleet View</h3>
+            <span className="flex h-3 w-3 relative">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+            </span>
+          </div>
 
-          <div className="relative z-10 flex-1 flex flex-col items-center justify-center text-center p-8 border border-dashed border-gray-700 rounded-xl bg-[#161f30]/50 my-auto">
-            <div className="w-16 h-16 bg-[#facc15]/10 rounded-full flex items-center justify-center mb-4 text-[#facc15] text-2xl font-bold">
-              📍
-            </div>
-            <h4 className="text-base font-bold text-white mb-1">Leaflet Radar Map Initialized</h4>
-            <p className="text-xs text-gray-400 max-w-sm">
-              Your live route matching, nearby drivers, and destination coordinates will render here seamlessly.
-            </p>
+          {/* Embedded Real Map View */}
+          <div className="relative z-10 flex-1 flex flex-col rounded-xl overflow-hidden border border-gray-700 min-h-[350px]">
+            <iframe
+              title="Live Radar Map"
+              src="https://www.openstreetmap.org/export/embed.html?bbox=75.25%2C19.85%2C75.40%2C19.95&amp;layer=mapnik"
+              className="w-full h-full border-0 flex-1 filter invert hue-rotate-180 contrast-125"
+              style={{ minHeight: '350px' }}
+            />
           </div>
 
           <div className="relative z-10 mt-6 grid grid-cols-3 gap-4 text-center">
