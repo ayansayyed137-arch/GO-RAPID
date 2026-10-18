@@ -18,36 +18,45 @@ export default function LoginPage() {
   const supabase = createClient()
   const router = useRouter()
 
-  // Generate Instant Local OTP without SMTP limits
-  const handleGenerateOtp = async (e: React.FormEvent) => {
+  // Generate OTP & Send Real Email via API Route
+  const handleSendEmailOtp = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setMessage(null)
 
-    // 6-digit random code generate karein
     const code = Math.floor(100000 + Math.random() * 900000).toString()
     setActiveOtp(code)
 
-    if (authMethod === 'password') {
-      // Register or verify user in Supabase
-      const { error: signUpErr } = await supabase.auth.signUp({ email, password })
-      if (signUpErr && !signUpErr.message.includes('User already registered')) {
-        setMessage({ text: signUpErr.message, type: 'error' })
-        setLoading(false)
-        return
-      }
-    }
+    try {
+      // Call backend API to send real email
+      const res = await fetch('/api/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, otp: code }),
+      })
 
-    // Success message ke sath code screen par dikhayein
-    setMessage({ 
-      text: `OTP Generated Successfully! (Your Code: ${code})`, 
-      type: 'success' 
-    })
-    setStep('verify-otp')
-    setLoading(false)
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to send email')
+
+      if (authMethod === 'password') {
+        const { error: signUpErr } = await supabase.auth.signUp({ email, password })
+        if (signUpErr && !signUpErr.message.includes('User already registered')) {
+          setMessage({ text: signUpErr.message, type: 'error' })
+          setLoading(false)
+          return
+        }
+      }
+
+      setMessage({ text: 'Real OTP has been sent to your email inbox!', type: 'success' })
+      setStep('verify-otp')
+    } catch (err: any) {
+      setMessage({ text: err.message || 'Error sending email', type: 'error' })
+    } finally {
+      setLoading(false)
+    }
   }
 
-  // Verify OTP and complete login session
+  // Verify OTP and Login
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
@@ -65,7 +74,7 @@ export default function LoginPage() {
         router.refresh()
       }, 1000)
     } else {
-      setMessage({ text: 'Invalid OTP code. Please enter the correct code.', type: 'error' })
+      setMessage({ text: 'Invalid OTP code. Please check your inbox.', type: 'error' })
     }
     setLoading(false)
   }
@@ -122,7 +131,7 @@ export default function LoginPage() {
 
         {step === 'credentials' ? (
           authMethod === 'password' ? (
-            <form onSubmit={handleGenerateOtp} className="space-y-4">
+            <form onSubmit={handleSendEmailOtp} className="space-y-4">
               <div>
                 <label className="block text-xs font-medium text-gray-400 mb-1">Email Address</label>
                 <input
@@ -150,11 +159,11 @@ export default function LoginPage() {
                 disabled={loading}
                 className="w-full bg-yellow-400 text-black font-bold py-3 rounded-xl hover:bg-yellow-500 transition shadow-lg shadow-yellow-500/20 disabled:opacity-50 mt-2"
               >
-                {loading ? 'Processing...' : 'Generate & Proceed'}
+                {loading ? 'Sending Email...' : 'Send OTP to Email'}
               </button>
             </form>
           ) : (
-            <form onSubmit={handleGenerateOtp} className="space-y-4">
+            <form onSubmit={handleSendEmailOtp} className="space-y-4">
               <div>
                 <label className="block text-xs font-medium text-gray-400 mb-1">Email Address</label>
                 <input
@@ -171,16 +180,14 @@ export default function LoginPage() {
                 disabled={loading}
                 className="w-full bg-yellow-400 text-black font-bold py-3 rounded-xl hover:bg-yellow-500 transition shadow-lg shadow-yellow-500/20 disabled:opacity-50 mt-2"
               >
-                {loading ? 'Processing...' : 'Generate OTP Code'}
+                {loading ? 'Sending Email...' : 'Send OTP Code to Email'}
               </button>
             </form>
           )
         ) : (
           <form onSubmit={handleVerifyOtp} className="space-y-4">
             <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1">
-                Enter OTP Code (Shown in green alert above)
-              </label>
+              <label className="block text-xs font-medium text-gray-400 mb-1">Enter 6-digit OTP sent to your inbox</label>
               <input
                 type="text"
                 required
