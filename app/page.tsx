@@ -11,7 +11,7 @@ export default function GoRapidDashboard() {
   const [distance, setDistance] = useState<number | string>(10)
   const [isProcessing, setIsProcessing] = useState(false)
 
-  // Pricing configuration as shown in screenshot
+  // Pricing configuration
   const BASE_FARE = 50
   const RATE_PER_KM = 15
   const numericDistance = Number(distance) || 0
@@ -67,6 +67,12 @@ export default function GoRapidDashboard() {
     }
   }
 
+  const handleSignOut = () => {
+    localStorage.removeItem('go_rapid_user')
+    document.cookie = 'go_rapid_user=; path=/; max-age=0;'
+    window.location.href = '/login'
+  }
+
   return (
     <div className="min-h-screen bg-[#070b14] text-white flex flex-col font-sans">
       {/* Header */}
@@ -75,19 +81,22 @@ export default function GoRapidDashboard() {
           GO RAPID
         </h1>
 
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-3">
+          {/* Manage Rides & History */}
           <button
             onClick={() => router.push('/manage')}
-            className="bg-gray-800 hover:bg-gray-700 text-[#facc15] border border-yellow-500/30 font-bold text-xs px-4 py-2 rounded-xl transition-all cursor-pointer shadow-md"
+            className="bg-gray-800 hover:bg-gray-700 text-[#facc15] border border-yellow-500/30 font-bold text-xs px-4 py-2.5 rounded-xl transition-all cursor-pointer shadow-md"
           >
             Manage Rides & History
           </button>
-          <div 
-            className="w-9 h-9 rounded-full bg-[#facc15] text-black font-extrabold flex items-center justify-center shadow-md cursor-pointer"
-            onClick={() => router.push('/manage')}
+
+          {/* Sign Out Button */}
+          <button
+            onClick={handleSignOut}
+            className="bg-[#facc15] hover:bg-[#eab308] text-black font-extrabold text-xs px-4 py-2.5 rounded-xl transition-all cursor-pointer shadow-md"
           >
-            {userEmail ? userEmail.charAt(0).toUpperCase() : 'S'}
-          </div>
+            Sign Out
+          </button>
         </div>
       </header>
 
