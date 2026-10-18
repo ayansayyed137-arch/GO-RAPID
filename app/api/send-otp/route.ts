@@ -8,7 +8,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Email and OTP are required' }, { status: 400 })
     }
 
-    // Direct Resend API Call with your API key
     const resendResponse = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
