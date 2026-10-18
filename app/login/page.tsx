@@ -11,6 +11,7 @@ export default function SignInPage() {
   
   const [step, setStep] = useState<'credentials' | 'otp'>('credentials')
   const [otpInput, setOtpInput] = useState('')
+  const [serverOtp, setServerOtp] = useState('')
   const [loading, setLoading] = useState(false)
 
   const handleSendOtp = async (e: React.FormEvent) => {
@@ -31,14 +32,15 @@ export default function SignInPage() {
       const data = await res.json()
 
       if (data.success) {
-        alert(`OTP has been sent to ${email}. Please check your inbox.`)
+        setServerOtp(data.otp)
+        alert(`2FA Verification Code has been dispatched to ${email}`)
         setStep('otp')
       } else {
         alert(data.error || 'Failed to send OTP')
       }
     } catch (err) {
       console.error(err)
-      alert('Error connecting to OTP server')
+      alert('Error connecting to authentication server')
     } finally {
       setLoading(false)
     }
@@ -46,15 +48,14 @@ export default function SignInPage() {
 
   const handleVerifyOtp = (e: React.FormEvent) => {
     e.preventDefault()
-    // Production me OTP backend verify hota hai, yahan hum simulation ke liye check kar sakte hain ya API verify bana sakte hain
-    if (otpInput.trim().length === 6) {
+    if (otpInput.trim() === serverOtp) {
       localStorage.setItem('go_rapid_user', email)
       document.cookie = `go_rapid_user=${email}; path=/; max-age=86400;`
 
-      alert('2FA Verification Successful! Redirecting...')
+      alert('2FA Verification Successful! Redirecting to Dashboard...')
       router.push('/')
     } else {
-      alert('Please enter a valid 6-digit OTP code.')
+      alert('Invalid OTP code! Please check your secure notification code.')
     }
   }
 
@@ -73,8 +74,19 @@ export default function SignInPage() {
           GO RAPID
         </h1>
         <p className="text-xs font-semibold text-[#facc15] tracking-widest uppercase mb-6">
-          {step === 'credentials' ? (isSignUp ? 'CREATE YOUR ACCOUNT' : 'SECURE 2FA LOGIN') : 'ENTER EMAIL OTP'}
+          {step === 'credentials' ? (isSignUp ? 'CREATE YOUR ACCOUNT' : 'SECURE 2FA LOGIN') : 'ENTER EMAIL 2FA CODE'}
         </p>
+
+        {step === 'otp' && serverOtp && (
+          <div className="w-full bg-[#facc15]/10 border border-[#facc15]/40 rounded-2xl p-3 mb-5 text-left">
+            <p className="text-[10px] font-bold text-[#facc15] uppercase tracking-wider">
+              🔒 Secure Dispatch (Demo Helper):
+            </p>
+            <p className="text-lg font-black text-white tracking-widest mt-0.5">
+              Code: {serverOtp}
+            </p>
+          </div>
+        )}
 
         {step === 'credentials' ? (
           <form onSubmit={handleSendOtp} className="w-full space-y-4">
@@ -111,14 +123,14 @@ export default function SignInPage() {
               disabled={loading}
               className="w-full mt-2 bg-[#facc15] hover:bg-[#eab308] text-black font-black text-xs uppercase tracking-wider py-4 rounded-xl shadow-lg transition-all cursor-pointer disabled:opacity-50"
             >
-              {loading ? 'SENDING EMAIL OTP...' : 'SEND OTP TO EMAIL'}
+              {loading ? 'PROCESSING...' : 'SEND 2FA CODE TO EMAIL'}
             </button>
           </form>
         ) : (
           <form onSubmit={handleVerifyOtp} className="w-full space-y-4">
             <div className="text-left">
               <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">
-                Enter 6-Digit Code Sent To Email
+                Enter 6-Digit Email Code
               </label>
               <input
                 type="text"
@@ -135,7 +147,7 @@ export default function SignInPage() {
               type="submit"
               className="w-full bg-[#facc15] hover:bg-[#eab308] text-black font-black text-xs uppercase tracking-wider py-4 rounded-xl shadow-lg transition-all cursor-pointer"
             >
-              VERIFY & LOGIN
+              VERIFY & ACCESS DASHBOARD
             </button>
 
             <button
@@ -143,7 +155,7 @@ export default function SignInPage() {
               onClick={() => setStep('credentials')}
               className="w-full text-xs font-semibold text-gray-400 hover:text-white pt-2 underline cursor-pointer"
             >
-              ← Resend or Change Email
+              ← Back to Sign In
             </button>
           </form>
         )}
@@ -159,7 +171,7 @@ export default function SignInPage() {
 
         <div className="w-full border-t border-gray-800/80 my-6" />
         <div className="flex items-center justify-center space-x-2 text-[10px] font-bold tracking-widest text-gray-400 uppercase">
-          <span>RESEND 2FA EMAIL</span>
+          <span>SECURE 2FA AUTH</span>
           <span>•</span>
           <span>STRIPE PAYMENTS</span>
         </div>
