@@ -6,47 +6,38 @@ import { useRouter } from 'next/navigation'
 export default function GoRapidDashboard() {
   const router = useRouter()
   const [userEmail, setUserEmail] = useState<string>('')
-  const [pickup, setPickup] = useState('Harsul')
-  const [dropoff, setDropoff] = useState('Kranti chowk')
-  const [bookingStatus, setBookingStatus] = useState<string | null>('Ready for Stripe payment session.')
+  const [pickup, setPickup] = useState('')
+  const [dropoff, setDropoff] = useState('')
+  const [distance, setDistance] = useState<number | string>(10)
   const [isProcessing, setIsProcessing] = useState(false)
 
+  // Rate settings
   const RATE_PER_KM = 19
+  const BASE_FARE = 50
 
-  // Dynamic Distance Calculation based on pickup & dropoff strings
-  const calculateDistance = (from: string, to: string) => {
-    if (!from || !to) return 5
-    const combinedStr = (from + to).toLowerCase()
-    let hash = 0
-    for (let i = 0; i < combinedStr.length; i++) {
-      hash = (hash << 5) - hash + combinedStr.charCodeAt(i)
-      hash |= 0
-    }
-    const distance = (Math.abs(hash) % 18) + 4
-    return distance
-  }
-
-  const estimatedDistance = calculateDistance(pickup, dropoff)
-  const calculatedFare = estimatedDistance * RATE_PER_KM
+  const numericDistance = Number(distance) || 0
+  const distanceFare = numericDistance * RATE_PER_KM
+  const totalFare = numericDistance > 0 ? BASE_FARE + distanceFare : 0
 
   useEffect(() => {
     const storedUser = localStorage.getItem('go_rapid_user')
-    if (!storedUser) {
-      router.push('/login')
-    } else {
+    if (storedUser) {
       setUserEmail(storedUser)
     }
-  }, [router])
+  }, [])
 
   const handleStripeCheckout = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!pickup || !dropoff) {
-      alert('Please enter pickup and dropoff locations before paying.')
+      alert('Please enter both pickup and dropoff locations.')
+      return
+    }
+    if (numericDistance <= 0) {
+      alert('Please enter a valid distance in KM.')
       return
     }
 
     setIsProcessing(true)
-    setBookingStatus('Connecting to Stripe API gateway...')
 
     try {
       const response = await fetch('/api/checkout', {
@@ -57,8 +48,9 @@ export default function GoRapidDashboard() {
         body: JSON.stringify({
           pickup,
           dropoff,
-          email: userEmail,
-          distanceKm: estimatedDistance,
+          email: userEmail || 'customer@gorapid.com',
+          distanceKm: numericDistance,
+          amount: totalFare,
         }),
       })
 
@@ -67,138 +59,167 @@ export default function GoRapidDashboard() {
       if (data.url) {
         window.location.href = data.url
       } else {
-        setBookingStatus('Failed to initiate Stripe Checkout session.')
+        alert('Failed to create Stripe payment session.')
         setIsProcessing(false)
       }
     } catch (error) {
-      console.error('Stripe error:', error)
-      setBookingStatus('Error connecting to payment gateway.')
+      console.error('Checkout error:', error)
+      alert('Error connecting to Stripe checkout gateway.')
       setIsProcessing(false)
     }
   }
 
-  const handleLogout = () => {
+  const handleSignOut = () => {
     localStorage.removeItem('go_rapid_user')
     document.cookie = 'go_rapid_user=; path=/; max-age=0;'
     window.location.href = '/login'
   }
 
   return (
-    <div className="min-h-screen bg-[#0b0f19] text-white flex flex-col">
-      <header className="border-b border-gray-800/80 bg-[#111827]/80 backdrop-blur-md px-6 py-4 flex justify-between items-center sticky top-0 z-50">
-        <div className="flex items-center space-x-3">
-          <h1 className="text-2xl font-black text-[#facc15] tracking-wider uppercase">
-            GO RAPID
-          </h1>
-          <span className="text-xs bg-yellow-500/10 text-[#facc15] border border-yellow-500/30 px-2.5 py-1 rounded-full font-semibold">
-            Live Radar Active
-          </span>
-        </div>
-
-        <div className="flex items-center space-x-4">
-          <span className="text-xs text-gray-400 hidden sm:inline">
-            Logged in as: <strong className="text-white">{userEmail || 'user@gorapid.com'}</strong>
-          </span>
-          <button
-            onClick={handleLogout}
-            className="bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 text-xs font-bold px-4 py-2 rounded-xl transition-all cursor-pointer"
-          >
-            Logout
-          </button>
-        </div>
+    <div className="min-h-screen bg-[#070b14] text-white flex flex-col font-sans">
+      {/* Top Header */}
+      <header className="px-8 py-5 flex justify-between items-center bg-[#070b14]/90 sticky top-0 z-50">
+        <h1 className="text-xl font-extrabold text-[#facc15] tracking-wide uppercase">
+          GO RAPID
+        </h1>
+        <button
+          onClick={handleSignOut}
+          className="bg-[#facc15] hover:bg-[#eab308] text-black font-extrabold text-xs px-5 py-2.5 rounded-lg transition-all cursor-pointer shadow-md"
+        >
+          Sign Out
+        </button>
       </header>
 
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 md:p-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-1 bg-[#111827]/90 backdrop-blur-xl border border-gray-800/80 rounded-2xl p-6 shadow-2xl flex flex-col justify-between">
-          <div>
-            {bookingStatus && (
-              <div className="mb-6 p-4 rounded-xl text-xs font-semibold bg-green-950/80 border border-green-700 text-green-200">
-                {bookingStatus}
-              </div>
-            )}
+      {/* Main Container */}
+      <main className="flex-1 max-w-7xl w-full mx-auto p-4 md:p-8 flex items-center justify-center">
+        <div className="w-full grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch">
+          
+          {/* Left Column: Dark Map Embed Container */}
+          <div className="bg-[#111827]/80 border border-gray-800/80 rounded-2xl p-4 md:p-6 shadow-2xl flex flex-col min-h-[480px]">
+            <div className="relative flex-1 rounded-xl overflow-hidden border border-gray-800 bg-[#0c101d] flex flex-col">
+              
+              {/* Map Dark Iframe */}
+              <iframe
+                title="Chhatrapati Sambhajinagar Map"
+                src="https://www.openstreetmap.org/export/embed.html?bbox=75.25%2C19.83%2C75.42%2C19.95&amp;layer=mapnik"
+                className="w-full h-full border-0 flex-1 filter invert hue-rotate-180 contrast-125 brightness-90"
+                style={{ minHeight: '400px' }}
+              />
 
-            <form onSubmit={handleStripeCheckout} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
-                  PICKUP LOCATION
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={pickup}
-                  onChange={(e) => setPickup(e.target.value)}
-                  className="w-full bg-[#1b2333] border border-gray-700/70 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#facc15]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
-                  DROPOFF LOCATION
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={dropoff}
-                  onChange={(e) => setDropoff(e.target.value)}
-                  className="w-full bg-[#1b2333] border border-gray-700/70 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#facc15]"
-                />
+              {/* Map Floating Card Overlay (Top Left) */}
+              <div className="absolute top-4 left-4 z-20 bg-[#0f172a]/90 backdrop-blur-md border border-gray-700/60 rounded-xl p-3 shadow-xl max-w-[240px]">
+                <h4 className="text-xs font-bold text-white">Chhatrapati Sambhajinagar</h4>
+                <p className="text-[10px] text-gray-400 mt-0.5">Chhatrapati Sambhajinagar, Maharashtra</p>
+                <a
+                  href="https://maps.google.com/?q=Chhatrapati+Sambhajinagar"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-2.5 inline-flex items-center space-x-1.5 bg-[#38bdf8] hover:bg-[#0284c7] text-black font-bold text-[10px] px-3 py-1.5 rounded-lg transition-all"
+                >
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                  <span>Open in Maps</span>
+                </a>
               </div>
 
-              <div className="bg-[#1b2333]/90 border border-yellow-500/30 p-3.5 rounded-xl flex justify-between items-center text-xs my-2">
+            </div>
+          </div>
+
+          {/* Right Column: Book & Pay via Distance Form */}
+          <div className="bg-[#111827]/90 backdrop-blur-xl border border-gray-800/80 rounded-2xl p-6 md:p-8 shadow-2xl flex flex-col justify-between">
+            <div>
+              <div className="flex items-center space-x-2 mb-6">
+                <span className="text-xl">🚗</span>
+                <h2 className="text-lg font-bold text-white tracking-tight">
+                  Book & Pay via Distance
+                </h2>
+              </div>
+
+              <form onSubmit={handleStripeCheckout} className="space-y-5">
+                {/* Pickup Input */}
                 <div>
-                  <span className="text-gray-400 block">Distance: {estimatedDistance} KM (@ ₹19/KM)</span>
-                  <span className="text-white font-bold">Estimated Fare</span>
+                  <label className="block text-xs font-medium text-gray-400 mb-1.5">
+                    Pickup Location
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g., Kat Kat Gate"
+                    value={pickup}
+                    onChange={(e) => setPickup(e.target.value)}
+                    className="w-full bg-[#0b0f19] border border-gray-800 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#facc15] transition-all"
+                  />
                 </div>
-                <span className="text-lg font-black text-[#facc15]">₹{calculatedFare}.00</span>
-              </div>
 
-              <button
-                type="submit"
-                disabled={isProcessing}
-                className="w-full bg-[#facc15] hover:bg-[#eab308] text-black font-extrabold py-3.5 rounded-xl shadow-lg transition-all text-sm mt-4 flex items-center justify-center space-x-2 cursor-pointer disabled:opacity-50"
-              >
-                <span>{isProcessing ? 'Connecting to Stripe...' : 'Pay with Stripe'}</span>
-              </button>
-            </form>
-          </div>
+                {/* Dropoff Input */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-400 mb-1.5">
+                    Dropoff Location
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g., Jafar Gate"
+                    value={dropoff}
+                    onChange={(e) => setDropoff(e.target.value)}
+                    className="w-full bg-[#0b0f19] border border-gray-800 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#facc15] transition-all"
+                  />
+                </div>
 
-          <div className="mt-8 pt-4 border-t border-gray-800/60 text-center text-xs text-gray-500">
-            Secure Stripe Checkout & Live Tracking Enabled
-          </div>
-        </div>
+                {/* Distance Input */}
+                <div>
+                  <div className="flex justify-between items-center mb-1.5">
+                    <label className="text-xs font-medium text-gray-400">
+                      Estimated Distance (KM)
+                    </label>
+                    <span className="text-xs font-bold text-[#facc15]">
+                      Rate: ₹{RATE_PER_KM}/km
+                    </span>
+                  </div>
+                  <input
+                    type="number"
+                    min="1"
+                    required
+                    value={distance}
+                    onChange={(e) => setDistance(e.target.value)}
+                    className="w-full bg-[#0b0f19] border border-gray-800 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#facc15] transition-all"
+                  />
+                </div>
 
-        <div className="lg:col-span-2 bg-[#111827]/90 backdrop-blur-xl border border-gray-800/80 rounded-2xl p-6 shadow-2xl flex flex-col justify-between relative overflow-hidden min-h-[400px]">
-          <div className="relative z-10 flex justify-between items-center mb-4">
-            <h3 className="text-lg font-bold text-white">Live Radar & Fleet View</h3>
-            <span className="flex h-3 w-3 relative">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
-            </span>
-          </div>
+                {/* Fare Summary Box */}
+                <div className="bg-[#0b0f19]/80 border border-gray-800/80 rounded-xl p-4 space-y-2 mt-6">
+                  <div className="flex justify-between items-center text-xs text-gray-400">
+                    <span>Base Fare</span>
+                    <span className="text-gray-300">₹{BASE_FARE}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs text-gray-400">
+                    <span>Distance ({numericDistance} KM × ₹{RATE_PER_KM})</span>
+                    <span className="text-gray-300">₹{distanceFare}</span>
+                  </div>
+                  <div className="border-t border-gray-800 pt-2 flex justify-between items-center text-sm font-bold text-white">
+                    <span>Total Fare</span>
+                    <span className="text-lg text-[#facc15]">₹{totalFare}</span>
+                  </div>
+                </div>
 
-          <div className="relative z-10 flex-1 flex flex-col rounded-xl overflow-hidden border border-gray-700 min-h-[350px]">
-            <iframe
-              title="Live Radar Map"
-              src="https://www.openstreetmap.org/export/embed.html?bbox=75.25%2C19.85%2C75.40%2C19.95&amp;layer=mapnik"
-              className="w-full h-full border-0 flex-1"
-              style={{ minHeight: '350px' }}
-            />
-          </div>
-
-          <div className="relative z-10 mt-6 grid grid-cols-3 gap-4 text-center">
-            <div className="bg-[#1b2333]/80 p-3 rounded-xl border border-gray-800">
-              <div className="text-xs text-gray-400">Nearby Drivers</div>
-              <div className="text-lg font-extrabold text-[#facc15]">14 Active</div>
+                {/* Yellow Stripe Payment Button */}
+                <button
+                  type="submit"
+                  disabled={isProcessing}
+                  className="w-full bg-[#facc15] hover:bg-[#eab308] text-black font-extrabold py-4 rounded-xl shadow-lg transition-all text-sm flex items-center justify-center space-x-2 cursor-pointer disabled:opacity-50 mt-6"
+                >
+                  <svg className="w-5 h-5 text-black" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z" />
+                  </svg>
+                  <span>
+                    {isProcessing ? 'Processing Payment...' : `Pay ₹${totalFare} with Stripe`}
+                  </span>
+                </button>
+              </form>
             </div>
-            <div className="bg-[#1b2333]/80 p-3 rounded-xl border border-gray-800">
-              <div className="text-xs text-gray-400">Avg. ETA</div>
-              <div className="text-lg font-extrabold text-white">3.4 Mins</div>
-            </div>
-            <div className="bg-[#1b2333]/80 p-3 rounded-xl border border-gray-800">
-              <div className="text-xs text-gray-400">Status</div>
-              <div className="text-lg font-extrabold text-green-400">Online</div>
-            </div>
           </div>
+
         </div>
       </main>
     </div>
