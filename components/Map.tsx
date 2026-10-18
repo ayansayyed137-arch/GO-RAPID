@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect } from 'react'
+import React from 'react'
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
@@ -27,17 +27,18 @@ export default function MapComponent({
   dropoffName = 'Dropoff Location',
 }: MapProps) {
   return (
-    <div className="w-full h-full min-h-[400px] rounded-2xl overflow-hidden shadow-xl border border-gray-800">
+    <div className="w-full h-full min-h-[400px] rounded-2xl overflow-hidden shadow-xl border border-gray-200 bg-white">
       <MapContainer
         center={pickupCoords}
         zoom={13}
         scrollWheelZoom={true}
         className="w-full h-full z-10"
+        style={{ background: '#ffffff' }}
       >
-        {/* Clean White / Light Theme Tile Layer */}
+        {/* CartoDB Positron Clean White / Light Theme Tile Layer */}
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution='&copy; <a href="https://carto.com/">CARTO</a>'
+          url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
         />
 
         {/* Pickup Marker */}
