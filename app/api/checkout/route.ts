@@ -11,7 +11,7 @@ export async function POST(req: Request) {
     const origin = req.headers.get('origin') || 'https://go-rapid-67nx.vercel.app'
 
     const distance = Number(distanceKm) > 0 ? Number(distanceKm) : 10
-    const calculatedAmount = Number(amount) > 0 ? Number(amount) : (distance * 19)
+    const calculatedAmount = Number(amount) > 0 ? Number(amount) : (50 + distance * 15)
 
     const session = await stripe.checkout.sessions.create({
       customer_email: email,
@@ -22,7 +22,7 @@ export async function POST(req: Request) {
             currency: 'inr',
             product_data: {
               name: `Ride Booking (${distance} KM)`,
-              description: `From ${pickup || 'Pickup'} to ${dropoff || 'Dropoff'} @ ₹19/KM`,
+              description: `From ${pickup || 'Pickup'} to ${dropoff || 'Dropoff'} (Base ₹50 + ₹15/KM)`,
             },
             unit_amount: Math.round(calculatedAmount * 100),
           },
