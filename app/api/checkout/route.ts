@@ -8,6 +8,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
 export async function POST(req: Request) {
   try {
     const { pickup, dropoff, email, distanceKm, amount } = await req.json()
+    const origin = req.headers.get('origin') || 'https://go-rapid-67nx.vercel.app'
 
     const distance = Number(distanceKm) > 0 ? Number(distanceKm) : 10
     const calculatedAmount = Number(amount) > 0 ? Number(amount) : (distance * 19)
@@ -29,12 +30,12 @@ export async function POST(req: Request) {
         },
       ],
       mode: 'payment',
-      success_url: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/?success=true`,
-      cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/?canceled=true`,
+      success_url: `${origin}/manage?success=true`,
+      cancel_url: `${origin}/?canceled=true`,
     } as any)
 
     return NextResponse.json({ url: session.url })
-  } catch (err: any) {
+  } caught (err: any) {
     console.error('Stripe Checkout Error:', err)
     return NextResponse.json({ error: err.message }, { status: 500 })
   }
