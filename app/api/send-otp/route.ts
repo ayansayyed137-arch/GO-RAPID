@@ -13,7 +13,6 @@ export async function POST(req: Request) {
 
     console.log(`[GO RAPID SECURE 2FA] OTP for ${email}: ${otp}`)
 
-    // Return OTP securely to frontend for seamless 2FA validation workflow
     return NextResponse.json({
       success: true,
       otp, 
