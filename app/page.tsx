@@ -8,7 +8,7 @@ export default function GoRapidDashboard() {
   const [userEmail, setUserEmail] = useState<string>('')
   const [pickup, setPickup] = useState('')
   const [dropoff, setDropoff] = useState('')
-  const [distance, setDistance] = useState<number | string>(10) 
+  const [distance, setDistance] = useState<number | string>(10)
   const [isProcessing, setIsProcessing] = useState(false)
 
   // Pricing configuration
@@ -104,18 +104,18 @@ export default function GoRapidDashboard() {
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 md:p-8 flex items-center justify-center">
         <div className="w-full grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch">
           
-          {/* Left: Dark Map */}
+          {/* Left: Clean White Map */}
           <div className="bg-[#111827]/80 border border-gray-800/80 rounded-2xl p-4 md:p-6 shadow-2xl flex flex-col min-h-[480px]">
-            <div className="relative flex-1 rounded-xl overflow-hidden border border-gray-800 bg-[#0c101d] flex flex-col">
+            <div className="relative flex-1 rounded-xl overflow-hidden border border-gray-800 bg-white flex flex-col">
               <iframe
                 title="Chhatrapati Sambhajinagar Map"
                 src="https://www.openstreetmap.org/export/embed.html?bbox=75.25%2C19.83%2C75.42%2C19.95&amp;layer=mapnik"
-                className="w-full h-full border-0 flex-1 filter invert hue-rotate-180 contrast-125 brightness-90"
+                className="w-full h-full border-0 flex-1"
                 style={{ minHeight: '400px' }}
               />
-              <div className="absolute top-4 left-4 z-20 bg-[#0f172a]/90 backdrop-blur-md border border-gray-700/60 rounded-xl p-3 shadow-xl max-w-[240px]">
-                <h4 className="text-xs font-bold text-white">Chhatrapati Sambhajinagar</h4>
-                <p className="text-[10px] text-gray-400 mt-0.5">Maharashtra, India</p>
+              <div className="absolute top-4 left-4 z-20 bg-white/95 backdrop-blur-md border border-gray-300 rounded-xl p-3 shadow-xl max-w-[240px]">
+                <h4 className="text-xs font-bold text-gray-900">Chhatrapati Sambhajinagar</h4>
+                <p className="text-[10px] text-gray-600 mt-0.5">Maharashtra, India</p>
               </div>
             </div>
           </div>
