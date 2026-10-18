@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { Suspense, useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 
 interface Ride {
@@ -13,7 +13,7 @@ interface Ride {
   status: string
 }
 
-export default function ManageRidesPage() {
+function ManageRidesContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const isSuccess = searchParams.get('success')
@@ -44,7 +44,6 @@ export default function ManageRidesPage() {
   const [reviewText, setReviewText] = useState('')
 
   useEffect(() => {
-    // Load saved rides from localStorage if any
     const savedRides = localStorage.getItem('go_rapid_rides')
     if (savedRides) {
       try {
@@ -56,7 +55,6 @@ export default function ManageRidesPage() {
   }, [])
 
   useEffect(() => {
-    // If redirected from successful stripe payment, add a new ride automatically
     if (isSuccess === 'true') {
       const newRideId = `GR-${Math.floor(1000 + Math.random() * 9000)}`
       const today = new Date().toLocaleDateString('en-GB', {
@@ -68,7 +66,7 @@ export default function ManageRidesPage() {
       const newRide: Ride = {
         id: newRideId,
         date: today,
-        pickup: 'Kat Kat Gate', // Or fetch from session storage if stored
+        pickup: 'Kat Kat Gate',
         dropoff: 'Jafar Gate',
         distance: 10,
         fare: 200,
@@ -76,7 +74,6 @@ export default function ManageRidesPage() {
       }
 
       setRides((prev) => {
-        // Prevent duplicate addition on reload
         if (prev.some((r) => r.id === newRideId)) return prev
         const updated = [newRide, ...prev]
         localStorage.setItem('go_rapid_rides', JSON.stringify(updated))
@@ -94,7 +91,6 @@ export default function ManageRidesPage() {
 
   return (
     <div className="min-h-screen bg-[#070b14] text-white flex flex-col font-sans">
-      {/* Header */}
       <header className="px-8 py-5 flex justify-between items-center bg-[#070b14] sticky top-0 z-50 border-b border-gray-800/50">
         <h1 className="text-xl font-black text-[#facc15] tracking-widest uppercase">
           GO RAPID / RIDE MANAGEMENT
@@ -107,10 +103,7 @@ export default function ManageRidesPage() {
         </button>
       </header>
 
-      {/* Main Content */}
       <main className="flex-1 max-w-5xl w-full mx-auto p-6 md:p-8">
-        
-        {/* Navigation Tabs */}
         <div className="flex flex-wrap gap-3 mb-8">
           <button
             onClick={() => setActiveTab('history')}
@@ -146,11 +139,9 @@ export default function ManageRidesPage() {
           </button>
         </div>
 
-        {/* Tab 1: Ride History */}
         {activeTab === 'history' && (
           <div className="space-y-6">
             <h2 className="text-lg font-bold text-white tracking-tight">Your Past Rides</h2>
-
             <div className="space-y-4">
               {rides.map((ride) => (
                 <div
@@ -203,7 +194,6 @@ export default function ManageRidesPage() {
           </div>
         )}
 
-        {/* Tab 2: View Receipt */}
         {activeTab === 'receipt' && (
           <div className="bg-[#111827]/90 backdrop-blur-xl border border-gray-800/80 rounded-2xl p-8 shadow-2xl max-w-xl mx-auto space-y-6">
             <div className="text-center border-b border-gray-800 pb-5">
@@ -247,7 +237,6 @@ export default function ManageRidesPage() {
           </div>
         )}
 
-        {/* Tab 3: Write Review */}
         {activeTab === 'review' && (
           <div className="bg-[#111827]/90 backdrop-blur-xl border border-gray-800/80 rounded-2xl p-8 shadow-2xl max-w-xl mx-auto">
             <h2 className="text-lg font-bold text-white mb-2">Rate Your Ride ({selectedRide.id})</h2>
@@ -277,8 +266,15 @@ export default function ManageRidesPage() {
             </form>
           </div>
         )}
-
       </main>
     </div>
+  )
+}
+
+export default function ManageRidesPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#070b14] text-white flex items-center justify-center font-bold">Loading Ride Management...</div>}>
+      <ManageRidesContent />
+    </Suspense>
   )
 }
