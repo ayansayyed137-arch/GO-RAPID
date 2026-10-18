@@ -23,7 +23,7 @@ export async function POST(req: Request) {
               name: `Ride Booking (${distance} KM)`,
               description: `From ${pickup || 'Pickup'} to ${dropoff || 'Dropoff'} @ ₹19/KM`,
             },
-            unit_amount: Math.round(calculatedAmount * 100), // Convert to paise
+            unit_amount: Math.round(calculatedAmount * 100),
           },
           quantity: 1,
         },
