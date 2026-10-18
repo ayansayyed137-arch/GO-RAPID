@@ -9,7 +9,9 @@ export async function POST(req: Request) {
   try {
     const { pickup, dropoff, email, distanceKm, amount } = await req.json()
 
-    const finalAmount = amount && amount > 0 ? amount : 200
+    // Rate calculation: ₹19 per KM (If distance provided)
+    const distance = Number(distanceKm) > 0 ? Number(distanceKm) : 10
+    const calculatedAmount = Number(amount) > 0 ? Number(amount) : (distance * 19)
 
     const session = await stripe.checkout.sessions.create({
       customer_email: email,
@@ -19,10 +21,10 @@ export async function POST(req: Request) {
           price_data: {
             currency: 'inr',
             product_data: {
-              name: `Ride Booking (${distanceKm || 10} KM)`,
-              description: `From ${pickup || 'Pickup'} to ${dropoff || 'Dropoff'}`,
+              name: `Ride Booking (${distance} KM)`,
+              description: `From ${pickup || 'Pickup'} to ${dropoff || 'Dropoff'} @ ₹19/KM`,
             },
-            unit_amount: Math.round(finalAmount * 100), // convert to paise
+            unit_amount: Math.round(calculatedAmount * 100), // Convert to Paise for Stripe
           },
           quantity: 1,
         },
@@ -34,6 +36,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ url: session.url })
   } catch (err: any) {
+    console.error('Stripe Checkout Error:', err)
     return NextResponse.json({ error: err.message }, { status: 500 })
   }
 }
