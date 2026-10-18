@@ -1,11 +1,8 @@
 'use client'
 
 import React, { useState } from 'react'
-import { useRouter } from 'next/navigation'
 
 export default function LoginPage() {
-  const router = useRouter()
-  
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -22,11 +19,11 @@ export default function LoginPage() {
       return
     }
 
-    // Instant successful login simulation & redirect
-    setTimeout(() => {
-      localStorage.setItem('go_rapid_user', email)
-      router.push('/')
-    }, 500)
+    // Save session user
+    localStorage.setItem('go_rapid_user', email)
+    
+    // Hard redirect to dashboard
+    window.location.href = '/'
   }
 
   return (
@@ -78,7 +75,7 @@ export default function LoginPage() {
             disabled={loading}
             className="w-full bg-[#facc15] hover:bg-[#eab308] text-black font-bold py-3.5 rounded-xl shadow-lg transition-all text-sm mt-4 cursor-pointer"
           >
-            {loading ? 'Logging in...' : 'Login to Dashboard'}
+            {loading ? 'Redirecting...' : 'Login to Dashboard'}
           </button>
         </form>
 
