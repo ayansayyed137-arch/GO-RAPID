@@ -8,7 +8,7 @@ export default function GoRapidDashboard() {
   const [userEmail, setUserEmail] = useState<string>('')
   const [pickup, setPickup] = useState('')
   const [dropoff, setDropoff] = useState('')
-  const [distance, setDistance] = useState<number | string>(10)
+  const [distance, setDistance] = useState<number | string>(10) 
   const [isProcessing, setIsProcessing] = useState(false)
 
   // Pricing configuration
