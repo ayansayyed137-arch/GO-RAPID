@@ -11,7 +11,7 @@ export default function GoRapidDashboard() {
   const [distance, setDistance] = useState<number | string>(10)
   const [isProcessing, setIsProcessing] = useState(false)
 
-  // Rate configuration
+  // Rate configuration: ₹19 / KM
   const RATE_PER_KM = 19
   const numericDistance = Number(distance) || 0
   const calculatedFare = numericDistance * RATE_PER_KM
@@ -75,23 +75,35 @@ export default function GoRapidDashboard() {
   return (
     <div className="min-h-screen bg-[#070b14] text-white flex flex-col font-sans">
       {/* Header */}
-      <header className="px-8 py-5 flex justify-between items-center bg-[#070b14]/90 sticky top-0 z-50">
+      <header className="px-8 py-5 flex justify-between items-center bg-[#070b14]/90 sticky top-0 z-50 border-b border-gray-800/80">
         <h1 className="text-xl font-extrabold text-[#facc15] tracking-wide uppercase">
           GO RAPID
         </h1>
-        <button
-          onClick={handleSignOut}
-          className="bg-[#facc15] hover:bg-[#eab308] text-black font-extrabold text-xs px-5 py-2.5 rounded-lg transition-all cursor-pointer shadow-md"
-        >
-          Sign Out
-        </button>
+
+        <div className="flex items-center space-x-3">
+          {/* Manage Rides & History Button */}
+          <button
+            onClick={() => router.push('/manage')}
+            className="bg-gray-800 hover:bg-gray-700 text-[#facc15] border border-yellow-500/30 font-bold text-xs px-4 py-2.5 rounded-xl transition-all cursor-pointer shadow-md"
+          >
+            Manage Rides & History
+          </button>
+
+          {/* Sign Out Button */}
+          <button
+            onClick={handleSignOut}
+            className="bg-[#facc15] hover:bg-[#eab308] text-black font-extrabold text-xs px-5 py-2.5 rounded-xl transition-all cursor-pointer shadow-md"
+          >
+            Sign Out
+          </button>
+        </div>
       </header>
 
       {/* Main Grid */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 md:p-8 flex items-center justify-center">
         <div className="w-full grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch">
           
-          {/* Left: Map */}
+          {/* Left: Dark Map */}
           <div className="bg-[#111827]/80 border border-gray-800/80 rounded-2xl p-4 md:p-6 shadow-2xl flex flex-col min-h-[480px]">
             <div className="relative flex-1 rounded-xl overflow-hidden border border-gray-800 bg-[#0c101d] flex flex-col">
               <iframe
