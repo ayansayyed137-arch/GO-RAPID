@@ -9,13 +9,12 @@ export async function POST(req: Request) {
   try {
     const { pickup, dropoff, email, distanceKm, amount } = await req.json()
 
-    // Rate calculation: ₹19 per KM (If distance provided)
     const distance = Number(distanceKm) > 0 ? Number(distanceKm) : 10
     const calculatedAmount = Number(amount) > 0 ? Number(amount) : (distance * 19)
 
     const session = await stripe.checkout.sessions.create({
       customer_email: email,
-      automatic_payment_methods: { enabled: true },
+      payment_method_types: ['card'],
       line_items: [
         {
           price_data: {
@@ -24,7 +23,7 @@ export async function POST(req: Request) {
               name: `Ride Booking (${distance} KM)`,
               description: `From ${pickup || 'Pickup'} to ${dropoff || 'Dropoff'} @ ₹19/KM`,
             },
-            unit_amount: Math.round(calculatedAmount * 100), // Convert to Paise for Stripe
+            unit_amount: Math.round(calculatedAmount * 100), // Convert to paise
           },
           quantity: 1,
         },
@@ -32,7 +31,7 @@ export async function POST(req: Request) {
       mode: 'payment',
       success_url: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/?success=true`,
       cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/?canceled=true`,
-    })
+    } as any)
 
     return NextResponse.json({ url: session.url })
   } catch (err: any) {
