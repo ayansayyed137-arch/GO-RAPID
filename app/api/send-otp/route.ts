@@ -12,17 +12,18 @@ export async function POST(req: Request) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer re_9Wu38LgS_AUM768BHia7oPTDFTH2wfrS7`,
+        // Yahan apni nayi wali Resend API Key paste kar dein:
+        Authorization: `Bearer re_YahanApniNayiKeyPasteKarein`,
       },
       body: JSON.stringify({
         from: 'GO RAPID <onboarding@resend.dev>',
         to: [email],
-        subject: 'GO RAPID - Your Sign Up OTP Code',
+        subject: 'GO RAPID - Your Login OTP Code',
         html: `
           <div style="font-family: Arial, sans-serif; background-color: #0b0f19; color: #ffffff; padding: 30px; border-radius: 12px; max-width: 500px; margin: auto;">
             <h2 style="color: #facc15; text-align: center;">GO RAPID</h2>
             <p>Hello,</p>
-            <p>Your verification code for signing up into GO RAPID is:</p>
+            <p>Your verification code for signing into GO RAPID is:</p>
             <div style="background-color: #111827; border: 1px solid #facc15; font-size: 28px; font-weight: bold; text-align: center; letter-spacing: 5px; color: #facc15; padding: 15px; border-radius: 8px; margin: 20px 0;">
               ${otp}
             </div>
