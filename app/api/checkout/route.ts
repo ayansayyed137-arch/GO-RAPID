@@ -7,11 +7,11 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
 
 export async function POST(req: Request) {
   try {
-    const { pickup, dropoff, email, distanceInKm } = await req.json()
+    const { pickup, dropoff, email, distanceKm } = await req.json()
 
-    // Default distance to 5 KM if not provided, or use actual distance passed from frontend
-    const distance = distanceInKm || 5 
-    const ratePerKm = 19 // ₹19 per KM rate
+    // Minimum distance default if not provided
+    const distance = Math.max(distanceKm || 1, 1)
+    const ratePerKm = 19 // ₹19 per KM
     const totalAmount = distance * ratePerKm
 
     const session = await stripe.checkout.sessions.create({
@@ -23,9 +23,9 @@ export async function POST(req: Request) {
             currency: 'inr',
             product_data: {
               name: `Ride Booking (${distance} KM)`,
-              description: `From ${pickup} to ${dropoff}`,
+              description: `From ${pickup} to ${dropoff} @ ₹19/KM`,
             },
-            unit_amount: totalAmount * 100, // Stripe expects amount in paise
+            unit_amount: Math.round(totalAmount * 100), // Stripe expects amount in paise
           },
           quantity: 1,
         },
