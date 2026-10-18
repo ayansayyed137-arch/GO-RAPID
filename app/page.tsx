@@ -9,7 +9,7 @@ export default function GoRapidDashboard() {
   const [pickup, setPickup] = useState('Harsul')
   const [dropoff, setDropoff] = useState('Kranti chowk')
   const [bookingStatus, setBookingStatus] = useState<string | null>('Cab booked successfully! Your ride is arriving shortly at Harsul.')
-  const [isBooking, setIsBooking] = useState(false)
+  const [isProcessing, setIsProcessing] = useState(false)
 
   useEffect(() => {
     const storedUser = localStorage.getItem('go_rapid_user')
@@ -27,13 +27,30 @@ export default function GoRapidDashboard() {
       return
     }
 
-    setIsBooking(true)
+    setIsProcessing(true)
     setBookingStatus(null)
 
     setTimeout(() => {
-      setIsBooking(false)
+      setIsProcessing(false)
       setBookingStatus(`Cab booked successfully! Your ride is arriving shortly at ${pickup}.`)
     }, 1200)
+  }
+
+  const handleStripeCheckout = () => {
+    if (!pickup || !dropoff) {
+      alert('Please enter pickup and dropoff locations before paying.')
+      return
+    }
+
+    setIsProcessing(true)
+    setBookingStatus(null)
+
+    // Simulate Stripe Checkout Redirect
+    setTimeout(() => {
+      setIsProcessing(false)
+      setBookingStatus('Redirecting to secure Stripe Checkout gateway...')
+      // Here you can push to your Stripe endpoint or handle session
+    }, 1000)
   }
 
   const handleLogout = () => {
@@ -71,7 +88,7 @@ export default function GoRapidDashboard() {
       {/* Main Dashboard Grid */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 md:p-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        {/* Left Column: Ride Booking Form */}
+        {/* Left Column: Ride Booking & Stripe Payment */}
         <div className="lg:col-span-1 bg-[#111827]/90 backdrop-blur-xl border border-gray-800/80 rounded-2xl p-6 shadow-2xl flex flex-col justify-between">
           <div>
             {bookingStatus && (
@@ -109,10 +126,20 @@ export default function GoRapidDashboard() {
 
               <button
                 type="submit"
-                disabled={isBooking}
+                disabled={isProcessing}
                 className="w-full bg-[#facc15] hover:bg-[#eab308] text-black font-extrabold py-3.5 rounded-xl shadow-lg transition-all text-sm mt-4 cursor-pointer disabled:opacity-50"
               >
-                {isBooking ? 'Finding Nearest Driver...' : 'Request GO RAPID'}
+                {isProcessing ? 'Processing...' : 'Request GO RAPID'}
+              </button>
+
+              {/* Stripe Payment Button */}
+              <button
+                type="button"
+                onClick={handleStripeCheckout}
+                disabled={isProcessing}
+                className="w-full bg-[#635bff] hover:bg-[#5851db] text-white font-extrabold py-3.5 rounded-xl shadow-lg transition-all text-sm flex items-center justify-center space-x-2 cursor-pointer disabled:opacity-50"
+              >
+                <span>🔒 Pay with Stripe</span>
               </button>
             </form>
           </div>
