@@ -31,23 +31,8 @@ export default function GoRapidDashboard() {
     }
   }, [router])
 
-  const handleBookRide = (e: React.FormEvent) => {
+  const handleStripeCheckout = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!pickup || !dropoff) {
-      alert('Please enter both pickup and dropoff locations.')
-      return
-    }
-
-    setIsProcessing(true)
-    setBookingStatus(null)
-
-    setTimeout(() => {
-      setIsProcessing(false)
-      setBookingStatus(`Cab booked successfully! Your ride is arriving shortly at ${pickup}.`)
-    }, 1200)
-  }
-
-  const handleStripeCheckout = () => {
     if (!pickup || !dropoff) {
       alert('Please enter pickup and dropoff locations before paying.')
       return
@@ -97,7 +82,7 @@ export default function GoRapidDashboard() {
       {/* Main Dashboard Grid */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 md:p-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        {/* Left Column: Ride Booking & Stripe Payment */}
+        {/* Left Column: Location Inputs & Yellow Stripe Payment Button */}
         <div className="lg:col-span-1 bg-[#111827]/90 backdrop-blur-xl border border-gray-800/80 rounded-2xl p-6 shadow-2xl flex flex-col justify-between">
           <div>
             {bookingStatus && (
@@ -106,7 +91,7 @@ export default function GoRapidDashboard() {
               </div>
             )}
 
-            <form onSubmit={handleBookRide} className="space-y-4">
+            <form onSubmit={handleStripeCheckout} className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
                   PICKUP LOCATION
@@ -133,19 +118,11 @@ export default function GoRapidDashboard() {
                 />
               </div>
 
+              {/* Yellow Pay with Stripe Button */}
               <button
                 type="submit"
                 disabled={isProcessing}
-                className="w-full bg-[#facc15] hover:bg-[#eab308] text-black font-extrabold py-3.5 rounded-xl shadow-lg transition-all text-sm mt-4 cursor-pointer disabled:opacity-50"
-              >
-                {isProcessing ? 'Processing...' : 'Request GO RAPID'}
-              </button>
-
-              <button
-                type="button"
-                onClick={handleStripeCheckout}
-                disabled={isProcessing}
-                className="w-full bg-[#635bff] hover:bg-[#5851db] text-white font-extrabold py-3.5 rounded-xl shadow-lg transition-all text-sm flex items-center justify-center space-x-2 cursor-pointer disabled:opacity-50"
+                className="w-full bg-[#facc15] hover:bg-[#eab308] text-black font-extrabold py-3.5 rounded-xl shadow-lg transition-all text-sm mt-6 flex items-center justify-center space-x-2 cursor-pointer disabled:opacity-50"
               >
                 <span>🔒 Pay with Stripe</span>
               </button>
