@@ -107,13 +107,13 @@ export default function GoRapidDashboard() {
                 />
               </div>
 
-              {/* Yellow Pay with Stripe Button */}
+              {/* Yellow Pay with Stripe Button (No Lock) */}
               <button
                 type="submit"
                 disabled={isProcessing}
                 className="w-full bg-[#facc15] hover:bg-[#eab308] text-black font-extrabold py-3.5 rounded-xl shadow-lg transition-all text-sm mt-6 flex items-center justify-center space-x-2 cursor-pointer disabled:opacity-50"
               >
-                <span>🔒 Pay with Stripe</span>
+                <span>Pay with Stripe</span>
               </button>
             </form>
           </div>
