@@ -2,17 +2,6 @@
 
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import dynamic from 'next/dynamic'
-
-// Dynamically import Leaflet map to avoid SSR window is not defined error
-const MapComponent = dynamic(() => import('@/components/MapComponent'), { 
-  ssr: false,
-  loading: () => (
-    <div className="w-full h-full flex items-center justify-center bg-[#161f30] text-gray-400 text-xs">
-      Loading Leaflet Radar Map...
-    </div>
-  )
-})
 
 export default function GoRapidDashboard() {
   const router = useRouter()
@@ -134,7 +123,7 @@ export default function GoRapidDashboard() {
           </div>
         </div>
 
-        {/* Right Column: Real Leaflet Map */}
+        {/* Right Column: Embedded Map View */}
         <div className="lg:col-span-2 bg-[#111827]/90 backdrop-blur-xl border border-gray-800/80 rounded-2xl p-6 shadow-2xl flex flex-col justify-between relative overflow-hidden min-h-[400px]">
           <div className="relative z-10 flex justify-between items-center mb-4">
             <h3 className="text-lg font-bold text-white">Live Radar & Fleet View</h3>
@@ -144,9 +133,14 @@ export default function GoRapidDashboard() {
             </span>
           </div>
 
-          {/* Leaflet Map Container */}
+          {/* Map Container */}
           <div className="relative z-10 flex-1 flex flex-col rounded-xl overflow-hidden border border-gray-700 min-h-[350px]">
-            <MapComponent />
+            <iframe
+              title="Live Radar Map"
+              src="https://www.openstreetmap.org/export/embed.html?bbox=75.25%2C19.85%2C75.40%2C19.95&amp;layer=mapnik"
+              className="w-full h-full border-0 flex-1 filter invert hue-rotate-180 contrast-125"
+              style={{ minHeight: '350px' }}
+            />
           </div>
 
           <div className="relative z-10 mt-6 grid grid-cols-3 gap-4 text-center">
