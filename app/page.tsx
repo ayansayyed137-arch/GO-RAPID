@@ -107,7 +107,7 @@ export default function GoRapidDashboard() {
                 />
               </div>
 
-              {/* Yellow Pay with Stripe Button (No Lock) */}
+              {/* Yellow Pay with Stripe Button */}
               <button
                 type="submit"
                 disabled={isProcessing}
@@ -123,7 +123,7 @@ export default function GoRapidDashboard() {
           </div>
         </div>
 
-        {/* Right Column: Embedded Map View */}
+        {/* Right Column: Normal Light Map View */}
         <div className="lg:col-span-2 bg-[#111827]/90 backdrop-blur-xl border border-gray-800/80 rounded-2xl p-6 shadow-2xl flex flex-col justify-between relative overflow-hidden min-h-[400px]">
           <div className="relative z-10 flex justify-between items-center mb-4">
             <h3 className="text-lg font-bold text-white">Live Radar & Fleet View</h3>
@@ -133,12 +133,12 @@ export default function GoRapidDashboard() {
             </span>
           </div>
 
-          {/* Map Container */}
+          {/* Map Container (Normal White Style) */}
           <div className="relative z-10 flex-1 flex flex-col rounded-xl overflow-hidden border border-gray-700 min-h-[350px]">
             <iframe
               title="Live Radar Map"
               src="https://www.openstreetmap.org/export/embed.html?bbox=75.25%2C19.85%2C75.40%2C19.95&amp;layer=mapnik"
-              className="w-full h-full border-0 flex-1 filter invert hue-rotate-180 contrast-125"
+              className="w-full h-full border-0 flex-1"
               style={{ minHeight: '350px' }}
             />
           </div>
