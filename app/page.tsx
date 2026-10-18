@@ -11,10 +11,9 @@ export default function GoRapidDashboard() {
   const [bookingStatus, setBookingStatus] = useState<string | null>('Ready for Stripe payment session.')
   const [isProcessing, setIsProcessing] = useState(false)
 
-  // Rate Configuration
   const RATE_PER_KM = 19
 
-  // Automatic distance estimation function based on pickup/dropoff
+  // Dynamic Distance Calculation based on pickup & dropoff strings
   const calculateDistance = (from: string, to: string) => {
     if (!from || !to) return 5
     const combinedStr = (from + to).toLowerCase()
@@ -23,7 +22,6 @@ export default function GoRapidDashboard() {
       hash = (hash << 5) - hash + combinedStr.charCodeAt(i)
       hash |= 0
     }
-    // Calculate distance between 4 KM and 22 KM automatically
     const distance = (Math.abs(hash) % 18) + 4
     return distance
   }
@@ -87,7 +85,6 @@ export default function GoRapidDashboard() {
 
   return (
     <div className="min-h-screen bg-[#0b0f19] text-white flex flex-col">
-      {/* Top Navigation Bar */}
       <header className="border-b border-gray-800/80 bg-[#111827]/80 backdrop-blur-md px-6 py-4 flex justify-between items-center sticky top-0 z-50">
         <div className="flex items-center space-x-3">
           <h1 className="text-2xl font-black text-[#facc15] tracking-wider uppercase">
@@ -111,10 +108,7 @@ export default function GoRapidDashboard() {
         </div>
       </header>
 
-      {/* Main Dashboard Grid */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 md:p-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
-        {/* Left Column: Location Inputs, Fare Details & Yellow Stripe Payment Button */}
         <div className="lg:col-span-1 bg-[#111827]/90 backdrop-blur-xl border border-gray-800/80 rounded-2xl p-6 shadow-2xl flex flex-col justify-between">
           <div>
             {bookingStatus && (
@@ -150,7 +144,6 @@ export default function GoRapidDashboard() {
                 />
               </div>
 
-              {/* Automatic Fare Calculation Info Box */}
               <div className="bg-[#1b2333]/90 border border-yellow-500/30 p-3.5 rounded-xl flex justify-between items-center text-xs my-2">
                 <div>
                   <span className="text-gray-400 block">Distance: {estimatedDistance} KM (@ ₹19/KM)</span>
@@ -159,7 +152,6 @@ export default function GoRapidDashboard() {
                 <span className="text-lg font-black text-[#facc15]">₹{calculatedFare}.00</span>
               </div>
 
-              {/* Yellow Pay with Stripe Button */}
               <button
                 type="submit"
                 disabled={isProcessing}
@@ -175,7 +167,6 @@ export default function GoRapidDashboard() {
           </div>
         </div>
 
-        {/* Right Column: Normal Light Map View */}
         <div className="lg:col-span-2 bg-[#111827]/90 backdrop-blur-xl border border-gray-800/80 rounded-2xl p-6 shadow-2xl flex flex-col justify-between relative overflow-hidden min-h-[400px]">
           <div className="relative z-10 flex justify-between items-center mb-4">
             <h3 className="text-lg font-bold text-white">Live Radar & Fleet View</h3>
@@ -185,7 +176,6 @@ export default function GoRapidDashboard() {
             </span>
           </div>
 
-          {/* Map Container */}
           <div className="relative z-10 flex-1 flex flex-col rounded-xl overflow-hidden border border-gray-700 min-h-[350px]">
             <iframe
               title="Live Radar Map"
@@ -210,7 +200,6 @@ export default function GoRapidDashboard() {
             </div>
           </div>
         </div>
-
       </main>
     </div>
   )
