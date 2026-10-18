@@ -11,6 +11,11 @@ export default function GoRapidDashboard() {
   const [bookingStatus, setBookingStatus] = useState<string | null>('Ready for Stripe payment session.')
   const [isProcessing, setIsProcessing] = useState(false)
 
+  // ₹19 per KM rate logic
+  const RATE_PER_KM = 19
+  const estimatedDistance = 8 // Default estimated KM (isey dynamic location distance se bhi connect kar sakte ho)
+  const calculatedFare = estimatedDistance * RATE_PER_KM
+
   useEffect(() => {
     const storedUser = localStorage.getItem('go_rapid_user')
     if (!storedUser) {
@@ -31,7 +36,6 @@ export default function GoRapidDashboard() {
     setBookingStatus('Connecting to Stripe API gateway...')
 
     try {
-      // Calling Next.js API route for Stripe Checkout session
       const response = await fetch('/api/checkout', {
         method: 'POST',
         headers: {
@@ -41,6 +45,8 @@ export default function GoRapidDashboard() {
           pickup,
           dropoff,
           email: userEmail,
+          distanceInKm: estimatedDistance,
+          ratePerKm: RATE_PER_KM,
         }),
       })
 
@@ -49,15 +55,12 @@ export default function GoRapidDashboard() {
       if (data.url) {
         window.location.href = data.url
       } else {
-        // Fallback simulation if API endpoint is not yet configured on backend
-        setTimeout(() => {
-          setBookingStatus('Stripe session created! Redirecting to checkout...')
-          setIsProcessing(false)
-        }, 800)
+        setBookingStatus('Failed to initiate Stripe Checkout session.')
+        setIsProcessing(false)
       }
     } catch (error) {
       console.error('Stripe error:', error)
-      setBookingStatus('Redirecting to secure Stripe Checkout...')
+      setBookingStatus('Error connecting to payment gateway.')
       setIsProcessing(false)
     }
   }
@@ -97,7 +100,7 @@ export default function GoRapidDashboard() {
       {/* Main Dashboard Grid */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 md:p-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        {/* Left Column: Location Inputs & Yellow Stripe Payment Button */}
+        {/* Left Column: Location Inputs, Fare Details & Yellow Stripe Payment Button */}
         <div className="lg:col-span-1 bg-[#111827]/90 backdrop-blur-xl border border-gray-800/80 rounded-2xl p-6 shadow-2xl flex flex-col justify-between">
           <div>
             {bookingStatus && (
@@ -133,11 +136,20 @@ export default function GoRapidDashboard() {
                 />
               </div>
 
+              {/* Fare Calculation Info Box */}
+              <div className="bg-[#1b2333]/90 border border-yellow-500/30 p-3.5 rounded-xl flex justify-between items-center text-xs my-2">
+                <div>
+                  <span className="text-gray-400 block">Rate: ₹19/KM ({estimatedDistance} KM)</span>
+                  <span className="text-white font-bold">Estimated Fare</span>
+                </div>
+                <span className="text-lg font-black text-[#facc15]">₹{calculatedFare}.00</span>
+              </div>
+
               {/* Yellow Pay with Stripe Button */}
               <button
                 type="submit"
                 disabled={isProcessing}
-                className="w-full bg-[#facc15] hover:bg-[#eab308] text-black font-extrabold py-3.5 rounded-xl shadow-lg transition-all text-sm mt-6 flex items-center justify-center space-x-2 cursor-pointer disabled:opacity-50"
+                className="w-full bg-[#facc15] hover:bg-[#eab308] text-black font-extrabold py-3.5 rounded-xl shadow-lg transition-all text-sm mt-4 flex items-center justify-center space-x-2 cursor-pointer disabled:opacity-50"
               >
                 <span>{isProcessing ? 'Connecting to Stripe...' : 'Pay with Stripe'}</span>
               </button>
