@@ -8,17 +8,17 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Email and OTP are required' }, { status: 400 })
     }
 
-    // Direct Resend REST API Call (No package needed)
+    // Direct Resend API Call with your API key
     const resendResponse = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+        Authorization: `Bearer re_9Wu38LgS_AUM768BHia7oPTDFTH2wfrS7`,
       },
       body: JSON.stringify({
         from: 'GO RAPID <onboarding@resend.dev>',
         to: [email],
-        subject: 'GO RAPID - Your Verification OTP',
+        subject: 'GO RAPID - Your Login OTP Code',
         html: `
           <div style="font-family: Arial, sans-serif; background-color: #0b0f19; color: #ffffff; padding: 30px; border-radius: 12px; max-width: 500px; margin: auto;">
             <h2 style="color: #facc15; text-align: center;">GO RAPID</h2>
