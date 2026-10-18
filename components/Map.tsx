@@ -1,28 +1,32 @@
-export default function Map() {
-  return (
-    <div className="relative w-full max-w-lg rounded-2xl overflow-hidden border border-slate-800 shadow-2xl bg-slate-900">
-      {/* Header Bar */}
-      <div className="p-3 bg-slate-950 flex justify-between items-center border-b border-slate-800">
-        <span className="text-xs font-bold text-amber-400 tracking-wider">AURANGABAD SATELLITE MAP</span>
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-emerald-400 font-medium">Live Tracking</span>
-          <span className="flex h-2 w-2 relative">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-          </span>
-        </div>
-      </div>
+'use client'
 
-      {/* Real Interactive Satellite Map Container */}
-      <div className="relative w-full h-80 bg-slate-900">
-        <iframe
-          title="Chhatrapati Sambhajinagar Satellite Map"
-          src="https://maps.google.com/maps?q=Chhatrapati+Sambhajinagar,Maharashtra&t=k&z=13&output=embed"
-          className="w-full h-full border-0"
-          allowFullScreen={false}
-          loading="lazy"
-        ></iframe>
-      </div>
-    </div>
+import React from 'react'
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
+import 'leaflet/dist/leaflet.css'
+import L from 'leaflet'
+
+// Fix default marker icon issue in Next.js
+const customIcon = new L.Icon({
+  iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+})
+
+export default function MapComponent() {
+  const position: [number, number] = [19.8762, 75.3433] // Chhatrapati Sambhajinagar coordinates
+
+  return (
+    <MapContainer center={position} zoom={13} style={{ height: '100%', width: '100%', background: '#0b0f19' }}>
+      <TileLayer
+        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+      />
+      <Marker position={position} icon={customIcon}>
+        <Popup>
+          GO RAPID Central Hub - Chhatrapati Sambhajinagar
+        </Popup>
+      </Marker>
+    </MapContainer>
   )
 }
