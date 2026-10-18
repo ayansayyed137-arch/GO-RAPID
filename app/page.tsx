@@ -6,14 +6,13 @@ import { useRouter } from 'next/navigation'
 export default function GoRapidDashboard() {
   const router = useRouter()
   const [userEmail, setUserEmail] = useState<string>('')
-  const [pickup, setPickup] = useState('')
-  const [dropoff, setDropoff] = useState('')
+  const [pickup, setPickup] = useState('Harsul')
+  const [dropoff, setDropoff] = useState('Kranti chowk')
   const [rideType, setRideType] = useState('GoMini')
-  const [bookingStatus, setBookingStatus] = useState<string | null>(null)
+  const [bookingStatus, setBookingStatus] = useState<string | null>('Cab booked successfully! Your GoMini is arriving shortly at Harsul.')
   const [isBooking, setIsBooking] = useState(false)
 
   useEffect(() => {
-    // Check if user is logged in via localStorage or cookie
     const storedUser = localStorage.getItem('go_rapid_user')
     if (!storedUser) {
       router.push('/login')
@@ -35,7 +34,7 @@ export default function GoRapidDashboard() {
     setTimeout(() => {
       setIsBooking(false)
       setBookingStatus(`Cab booked successfully! Your ${rideType} is arriving shortly at ${pickup}.`)
-    }, 1500)
+    }, 1200)
   }
 
   const handleLogout = () => {
@@ -59,7 +58,7 @@ export default function GoRapidDashboard() {
 
         <div className="flex items-center space-x-4">
           <span className="text-xs text-gray-400 hidden sm:inline">
-            Logged in as: <strong className="text-white">{userEmail || 'User'}</strong>
+            Logged in as: <strong className="text-white">{userEmail || 'skzainali17@gmail.com'}</strong>
           </span>
           <button
             onClick={handleLogout}
@@ -76,9 +75,6 @@ export default function GoRapidDashboard() {
         {/* Left Column: Ride Booking Form */}
         <div className="lg:col-span-1 bg-[#111827]/90 backdrop-blur-xl border border-gray-800/80 rounded-2xl p-6 shadow-2xl flex flex-col justify-between">
           <div>
-            <h2 className="text-xl font-bold text-white mb-2">Book Your Ride</h2>
-            <p className="text-xs text-gray-400 mb-6">Fast, reliable, and secure cab booking.</p>
-
             {bookingStatus && (
               <div className="mb-6 p-4 rounded-xl text-xs font-semibold bg-green-950/80 border border-green-700 text-green-200">
                 {bookingStatus}
@@ -88,35 +84,33 @@ export default function GoRapidDashboard() {
             <form onSubmit={handleBookRide} className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
-                  Pickup Location
+                  PICKUP LOCATION
                 </label>
                 <input
                   type="text"
                   required
                   value={pickup}
                   onChange={(e) => setPickup(e.target.value)}
-                  placeholder="Enter pickup address..."
-                  className="w-full bg-[#1b2333] border border-gray-700/70 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#facc15]"
+                  className="w-full bg-[#1b2333] border border-gray-700/70 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#facc15]"
                 />
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
-                  Dropoff Location
+                  DROPOFF LOCATION
                 </label>
                 <input
                   type="text"
                   required
                   value={dropoff}
                   onChange={(e) => setDropoff(e.target.value)}
-                  placeholder="Enter destination..."
-                  className="w-full bg-[#1b2333] border border-gray-700/70 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#facc15]"
+                  className="w-full bg-[#1b2333] border border-gray-700/70 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#facc15]"
                 />
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
-                  Select Ride Tier
+                  SELECT RIDE TIER
                 </label>
                 <div className="grid grid-cols-3 gap-2">
                   {['GoMini', 'GoSedan', 'GoSUV'].map((tier) => (
@@ -151,19 +145,11 @@ export default function GoRapidDashboard() {
           </div>
         </div>
 
-        {/* Right Column: Live Map Radar / Status View */}
+        {/* Right Column: Live Map Radar View */}
         <div className="lg:col-span-2 bg-[#111827]/90 backdrop-blur-xl border border-gray-800/80 rounded-2xl p-6 shadow-2xl flex flex-col justify-between relative overflow-hidden min-h-[400px]">
           <div className="absolute inset-0 bg-[radial-gradient(#1f2937_1px,transparent_1px)] [background-size:16px_16px] opacity-40 pointer-events-none" />
 
-          <div className="relative z-10 flex justify-between items-center mb-4">
-            <h3 className="text-lg font-bold text-white">Live Radar & Fleet View</h3>
-            <span className="flex h-3 w-3 relative">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
-            </span>
-          </div>
-
-          <div className="relative z-10 flex-1 flex flex-col items-center justify-center text-center p-8 border border-dashed border-gray-700 rounded-xl bg-[#161f30]/50">
+          <div className="relative z-10 flex-1 flex flex-col items-center justify-center text-center p-8 border border-dashed border-gray-700 rounded-xl bg-[#161f30]/50 my-auto">
             <div className="w-16 h-16 bg-[#facc15]/10 rounded-full flex items-center justify-center mb-4 text-[#facc15] text-2xl font-bold">
               📍
             </div>
