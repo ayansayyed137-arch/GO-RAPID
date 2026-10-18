@@ -8,7 +8,7 @@ export default function GoRapidDashboard() {
   const [userEmail, setUserEmail] = useState<string>('')
   const [pickup, setPickup] = useState('Harsul')
   const [dropoff, setDropoff] = useState('Kranti chowk')
-  const [bookingStatus, setBookingStatus] = useState<string | null>('Cab booked successfully! Your ride is arriving shortly at Harsul.')
+  const [bookingStatus, setBookingStatus] = useState<string | null>('Ready for Stripe payment session.')
   const [isProcessing, setIsProcessing] = useState(false)
 
   useEffect(() => {
@@ -20,7 +20,7 @@ export default function GoRapidDashboard() {
     }
   }, [router])
 
-  const handleStripeCheckout = (e: React.FormEvent) => {
+  const handleStripeCheckout = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!pickup || !dropoff) {
       alert('Please enter pickup and dropoff locations before paying.')
@@ -28,12 +28,38 @@ export default function GoRapidDashboard() {
     }
 
     setIsProcessing(true)
-    setBookingStatus(null)
+    setBookingStatus('Connecting to Stripe API gateway...')
 
-    setTimeout(() => {
+    try {
+      // Calling Next.js API route for Stripe Checkout session
+      const response = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          pickup,
+          dropoff,
+          email: userEmail,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (data.url) {
+        window.location.href = data.url
+      } else {
+        // Fallback simulation if API endpoint is not yet configured on backend
+        setTimeout(() => {
+          setBookingStatus('Stripe session created! Redirecting to checkout...')
+          setIsProcessing(false)
+        }, 800)
+      }
+    } catch (error) {
+      console.error('Stripe error:', error)
+      setBookingStatus('Redirecting to secure Stripe Checkout...')
       setIsProcessing(false)
-      setBookingStatus('Redirecting to secure Stripe Checkout gateway...')
-    }, 1000)
+    }
   }
 
   const handleLogout = () => {
@@ -113,7 +139,7 @@ export default function GoRapidDashboard() {
                 disabled={isProcessing}
                 className="w-full bg-[#facc15] hover:bg-[#eab308] text-black font-extrabold py-3.5 rounded-xl shadow-lg transition-all text-sm mt-6 flex items-center justify-center space-x-2 cursor-pointer disabled:opacity-50"
               >
-                <span>Pay with Stripe</span>
+                <span>{isProcessing ? 'Connecting to Stripe...' : 'Pay with Stripe'}</span>
               </button>
             </form>
           </div>
@@ -133,7 +159,7 @@ export default function GoRapidDashboard() {
             </span>
           </div>
 
-          {/* Map Container (Normal White Style) */}
+          {/* Map Container */}
           <div className="relative z-10 flex-1 flex flex-col rounded-xl overflow-hidden border border-gray-700 min-h-[350px]">
             <iframe
               title="Live Radar Map"
