@@ -11,8 +11,7 @@ export async function POST(req: Request) {
 
     const origin = req.headers.get('origin') || 'http://localhost:3000'
 
-    const sessionData: any = {
-      payment_method_types: ['card'],
+    const session = await stripe.checkout.sessions.create({
       line_items: [
         {
           price_data: {
@@ -29,9 +28,7 @@ export async function POST(req: Request) {
       mode: 'payment',
       success_url: `${origin}/?booking=success&rideId=${rideId}`,
       cancel_url: `${origin}/?booking=cancelled`,
-    }
-
-    const session = await stripe.checkout.sessions.create(sessionData)
+    })
 
     return NextResponse.json({ url: session.url })
   } catch (error: any) {
