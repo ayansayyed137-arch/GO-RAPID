@@ -1,5 +1,7 @@
 'use client'
 
+export const dynamic = 'force-dynamic'
+
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useUser } from '@clerk/nextjs'
@@ -16,7 +18,6 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [isMounted, setIsMounted] = useState(false)
 
-  // Get actual user email once Clerk is loaded
   const userEmail = isLoaded && user?.primaryEmailAddress?.emailAddress 
     ? user.primaryEmailAddress.emailAddress 
     : 'guest_user'
