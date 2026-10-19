@@ -5,209 +5,216 @@ import { useRouter } from 'next/navigation'
 
 export default function GoRapidDashboard() {
   const router = useRouter()
-  const [userEmail, setUserEmail] = useState<string>('')
-  const [pickup, setPickup] = useState('')
-  const [dropoff, setDropoff] = useState('')
-  const [distance, setDistance] = useState<number | string>(10)
-  const [isProcessing, setIsProcessing] = useState(false)
+  const [activeTab, setActiveTab] = useState('history') // 'history', 'receipt', 'review'
+  const [pickup, setPickup] = useState('Kat Kat Gate')
+  const [dropoff, setDropoff] = useState('Jafar Gate')
+  const [distance, setDistance] = useState(10)
+  const [fare, setFare] = useState(200)
+  const [rides, setRides] = useState<any[]>([])
 
-  // Pricing configuration
-  const BASE_FARE = 50
-  const RATE_PER_KM = 15
-  const numericDistance = Number(distance) || 0
-  const calculatedFare = BASE_FARE + (numericDistance * RATE_PER_KM)
-
+  // Load ride history on mount
   useEffect(() => {
-    const storedUser = localStorage.getItem('go_rapid_user')
-    if (storedUser) {
-      setUserEmail(storedUser)
+    const savedRides = localStorage.getItem('go_rapid_rides')
+    if (savedRides) {
+      setRides(JSON.parse(savedRides))
+    } else {
+      const initialRides = [
+        { id: 'GR-2467', date: '19 Oct 2026', status: 'Completed', from: 'Kat Kat Gate', to: 'Jafar Gate', distance: '10 KM', fare: '₹200' },
+        { id: 'GR-5279', date: '19 Oct 2026', status: 'Completed', from: 'Kat Kat Gate', to: 'Jafar Gate', distance: '10 KM', fare: '₹200' }
+      ]
+      setRides(initialRides)
+      localStorage.setItem('go_rapid_rides', JSON.stringify(initialRides))
     }
   }, [])
 
-  const handleStripeCheckout = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!pickup || !dropoff) {
-      alert('Please enter both pickup and dropoff locations.')
-      return
+  // Handle new ride booking simulation
+  const handleBookNewRide = () => {
+    const randomId = 'GR-' + Math.floor(1000 + Math.random() * 9000)
+    const newRide = {
+      id: randomId,
+      date: '19 Oct 2026',
+      status: 'Completed',
+      from: pickup,
+      to: dropoff,
+      distance: distance + ' KM',
+      fare: '₹' + fare,
     }
-    if (numericDistance <= 0) {
-      alert('Please enter a valid distance in KM.')
-      return
-    }
 
-    setIsProcessing(true)
-
-    try {
-      const response = await fetch('/api/checkout', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          pickup,
-          dropoff,
-          email: userEmail || 'customer@gorapid.com',
-          distanceKm: numericDistance,
-          amount: calculatedFare,
-        }),
-      })
-
-      const data = await response.json()
-
-      if (data.url) {
-        window.location.href = data.url
-      } else {
-        alert('Failed to create Stripe payment session.')
-        setIsProcessing(false)
-      }
-    } catch (error) {
-      console.error('Checkout error:', error)
-      alert('Error connecting to Stripe checkout gateway.')
-      setIsProcessing(false)
-    }
-  }
-
-  const handleSignOut = () => {
-    localStorage.removeItem('go_rapid_user')
-    document.cookie = 'go_rapid_user=; path=/; max-age=0;'
-    window.location.href = '/login'
+    const updatedRides = [newRide, ...rides]
+    setRides(updatedRides)
+    localStorage.setItem('go_rapid_rides', JSON.stringify(updatedRides))
+    alert(`Ride ${randomId} successfully booked and added to history!`)
   }
 
   return (
-    <div className="min-h-screen bg-[#070b14] text-white flex flex-col font-sans">
-      {/* Header */}
-      <header className="px-8 py-5 flex justify-between items-center bg-[#070b14] sticky top-0 z-50 border-b border-gray-800/50">
-        <h1 className="text-xl font-black text-[#facc15] tracking-widest uppercase">
-          GO RAPID
-        </h1>
-
-        <div className="flex items-center space-x-3">
-          {/* Manage Rides & History */}
-          <button
-            onClick={() => router.push('/manage')}
-            className="bg-gray-800 hover:bg-gray-700 text-[#facc15] border border-yellow-500/30 font-bold text-xs px-4 py-2.5 rounded-xl transition-all cursor-pointer shadow-md"
-          >
-            Manage Rides & History
-          </button>
-
-          {/* Sign Out Button */}
-          <button
-            onClick={handleSignOut}
-            className="bg-[#facc15] hover:bg-[#eab308] text-black font-extrabold text-xs px-4 py-2.5 rounded-xl transition-all cursor-pointer shadow-md"
-          >
-            Sign Out
-          </button>
-        </div>
-      </header>
-
-      {/* Main Grid */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 md:p-8 flex items-center justify-center">
-        <div className="w-full grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch">
-          
-          {/* Left: Clean White Map */}
-          <div className="bg-[#111827]/80 border border-gray-800/80 rounded-2xl p-4 md:p-6 shadow-2xl flex flex-col min-h-[480px]">
-            <div className="relative flex-1 rounded-xl overflow-hidden border border-gray-800 bg-white flex flex-col">
-              <iframe
-                title="Chhatrapati Sambhajinagar Map"
-                src="https://www.openstreetmap.org/export/embed.html?bbox=75.25%2C19.83%2C75.42%2C19.95&amp;layer=mapnik"
-                className="w-full h-full border-0 flex-1"
-                style={{ minHeight: '400px' }}
-              />
-              <div className="absolute top-4 left-4 z-20 bg-white/95 backdrop-blur-md border border-gray-300 rounded-xl p-3 shadow-xl max-w-[240px]">
-                <h4 className="text-xs font-bold text-gray-900">Chhatrapati Sambhajinagar</h4>
-                <p className="text-[10px] text-gray-600 mt-0.5">Maharashtra, India</p>
-              </div>
-            </div>
+    <div className="min-h-screen bg-[#070b14] text-white p-6 font-sans">
+      <div className="max-w-5xl mx-auto">
+        
+        {/* Top Navbar / Action Bar */}
+        <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setActiveTab('history')}
+              className={`px-5 py-2.5 rounded-xl font-bold text-sm transition-all cursor-pointer ${
+                activeTab === 'history'
+                  ? 'bg-[#facc15] text-black shadow-lg shadow-yellow-500/20'
+                  : 'bg-[#111827] text-gray-300 border border-gray-800 hover:bg-gray-800'
+              }`}
+            >
+              📜 Ride History
+            </button>
+            <button
+              onClick={() => setActiveTab('receipt')}
+              className={`px-5 py-2.5 rounded-xl font-bold text-sm transition-all cursor-pointer ${
+                activeTab === 'receipt'
+                  ? 'bg-[#facc15] text-black shadow-lg shadow-yellow-500/20'
+                  : 'bg-[#111827] text-gray-300 border border-gray-800 hover:bg-gray-800'
+              }`}
+            >
+              📄 View Receipt {rides.length > 0 ? `(${rides[0].id})` : ''}
+            </button>
+            <button
+              onClick={() => setActiveTab('review')}
+              className={`px-5 py-2.5 rounded-xl font-bold text-sm transition-all cursor-pointer ${
+                activeTab === 'review'
+                  ? 'bg-[#facc15] text-black shadow-lg shadow-yellow-500/20'
+                  : 'bg-[#111827] text-gray-300 border border-gray-800 hover:bg-gray-800'
+              }`}
+            >
+              ⭐ Write Review
+            </button>
           </div>
 
-          {/* Right: Booking Form */}
-          <div className="bg-[#111827]/90 backdrop-blur-xl border border-gray-800/80 rounded-2xl p-6 md:p-8 shadow-2xl flex flex-col justify-between">
-            <div>
-              <div className="flex items-center space-x-2 mb-6">
-                <span className="text-xl">🚗</span>
-                <h2 className="text-lg font-bold text-white tracking-tight">
-                  Book & Pay via Distance
-                </h2>
-              </div>
+          <button
+            onClick={handleBookNewRide}
+            className="bg-green-500 hover:bg-green-600 text-black font-extrabold px-6 py-2.5 rounded-xl text-sm transition-all shadow-lg cursor-pointer"
+          >
+            + Book New Ride
+          </button>
+        </div>
 
-              <form onSubmit={handleStripeCheckout} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-medium text-gray-400 mb-1.5">
-                    Pickup Location
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g., Kat Kat Gate"
-                    value={pickup}
-                    onChange={(e) => setPickup(e.target.value)}
-                    className="w-full bg-[#0b0f19] border border-gray-800 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#facc15] transition-all"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-gray-400 mb-1.5">
-                    Dropoff Location
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g., Jafar Gate"
-                    value={dropoff}
-                    onChange={(e) => setDropoff(e.target.value)}
-                    className="w-full bg-[#0b0f19] border border-gray-800 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#facc15] transition-all"
-                  />
-                </div>
-
-                <div>
-                  <div className="flex justify-between items-center mb-1.5">
-                    <label className="text-xs font-medium text-gray-400">
-                      Estimated Distance (KM)
-                    </label>
-                    <span className="text-xs font-bold text-[#facc15]">
-                      Rate: ₹{RATE_PER_KM}/km
-                    </span>
-                  </div>
-                  <input
-                    type="number"
-                    min="1"
-                    required
-                    value={distance}
-                    onChange={(e) => setDistance(e.target.value)}
-                    className="w-full bg-[#0b0f19] border border-gray-800 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#facc15] transition-all"
-                  />
-                </div>
-
-                <div className="bg-[#0b0f19]/80 border border-gray-800/80 rounded-xl p-4 space-y-2 mt-4">
-                  <div className="flex justify-between items-center text-xs text-gray-400">
-                    <span>Base Fare</span>
-                    <span className="text-gray-300">₹{BASE_FARE}</span>
-                  </div>
-                  <div className="flex justify-between items-center text-xs text-gray-400">
-                    <span>Distance ({numericDistance} KM × ₹{RATE_PER_KM})</span>
-                    <span className="text-gray-300">₹{numericDistance * RATE_PER_KM}</span>
-                  </div>
-                  <div className="border-t border-gray-800 pt-2 flex justify-between items-center text-sm font-bold text-white">
-                    <span>Total Fare</span>
-                    <span className="text-lg text-[#facc15]">₹{calculatedFare}</span>
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={isProcessing}
-                  className="w-full bg-[#facc15] hover:bg-[#eab308] text-black font-extrabold py-4 rounded-xl shadow-lg transition-all text-sm flex items-center justify-center space-x-2 cursor-pointer disabled:opacity-50 mt-4"
+        {/* Content Section */}
+        {activeTab === 'history' && (
+          <div>
+            <h2 className="text-xl font-bold mb-6 text-gray-200">Your Past Rides</h2>
+            <div className="space-y-4">
+              {rides.map((ride, index) => (
+                <div
+                  key={index}
+                  className="bg-[#111827]/90 backdrop-blur-xl border border-gray-800 rounded-2xl p-6 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4"
                 >
-                  <span>
-                    {isProcessing ? 'Processing Payment...' : `Pay ₹{calculatedFare} with Stripe`}
-                  </span>
-                </button>
-              </form>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-3">
+                      <span className="bg-[#facc15] text-black font-black px-3 py-1 rounded-lg text-xs">
+                        {ride.id}
+                      </span>
+                      <span className="text-xs text-gray-400">{ride.date}</span>
+                      <span className="bg-emerald-950 text-emerald-400 border border-emerald-800/50 text-[10px] font-bold px-2.5 py-0.5 rounded-full">
+                        {ride.status}
+                      </span>
+                    </div>
+
+                    <div className="text-sm space-y-1 text-gray-300">
+                      <p><span className="text-red-400">🚗 From:</span> {ride.from}</p>
+                      <p><span className="text-gray-400">🏁 To:</span> {ride.to}</p>
+                    </div>
+
+                    <p className="text-xs text-gray-400 font-semibold">
+                      Distance: <span className="text-white">{ride.distance}</span> | Fare: <span className="text-[#facc15]">{ride.fare}</span>
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-3 w-full md:w-auto">
+                    <button
+                      onClick={() => setActiveTab('receipt')}
+                      className="flex-1 md:flex-none bg-[#1f2937] hover:bg-gray-800 text-gray-200 text-xs font-bold px-4 py-3 rounded-xl border border-gray-700 transition-all cursor-pointer"
+                    >
+                      View Receipt
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('review')}
+                      className="flex-1 md:flex-none bg-[#facc15] hover:bg-[#eab308] text-black text-xs font-extrabold px-4 py-3 rounded-xl transition-all cursor-pointer shadow-md"
+                    >
+                      Write Review
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
+        )}
 
-        </div>
-      </main>
+        {activeTab === 'receipt' && (
+          <div className="bg-[#111827] border border-gray-800 rounded-2xl p-8 max-w-lg mx-auto shadow-2xl">
+            <h2 className="text-xl font-bold text-[#facc15] mb-4 text-center">Ride Receipt</h2>
+            {rides.length > 0 && (
+              <div className="space-y-4 text-sm text-gray-300">
+                <div className="flex justify-between border-b border-gray-800 pb-2">
+                  <span className="text-gray-500">Ride ID</span>
+                  <span className="font-mono text-[#facc15]">{rides[0].id}</span>
+                </div>
+                <div className="flex justify-between border-b border-gray-800 pb-2">
+                  <span className="text-gray-500">Date</span>
+                  <span>{rides[0].date}</span>
+                </div>
+                <div className="flex justify-between border-b border-gray-800 pb-2">
+                  <span className="text-gray-500">Pickup</span>
+                  <span>{rides[0].from}</span>
+                </div>
+                <div className="flex justify-between border-b border-gray-800 pb-2">
+                  <span className="text-gray-500">Dropoff</span>
+                  <span>{rides[0].to}</span>
+                </div>
+                <div className="flex justify-between border-b border-gray-800 pb-2">
+                  <span className="text-gray-500">Distance</span>
+                  <span>{rides[0].distance}</span>
+                </div>
+                <div className="flex justify-between pt-2 text-base font-bold text-white">
+                  <span>Total Fare</span>
+                  <span className="text-[#facc15]">{rides[0].fare}</span>
+                </div>
+              </div>
+            )}
+            <button
+              onClick={() => setActiveTab('history')}
+              className="w-full mt-6 bg-gray-800 hover:bg-gray-700 text-gray-300 py-3 rounded-xl text-xs font-bold transition-all cursor-pointer"
+            >
+              ← Back to History
+            </button>
+          </div>
+        )}
+
+        {activeTab === 'review' && (
+          <div className="bg-[#111827] border border-gray-800 rounded-2xl p-8 max-w-lg mx-auto shadow-2xl text-center">
+            <h2 className="text-xl font-bold text-[#facc15] mb-2">Rate Your Ride</h2>
+            <p className="text-xs text-gray-400 mb-6">How was your experience with GoRapid?</p>
+            
+            <div className="flex justify-center gap-2 mb-6">
+              {['⭐', '⭐', '⭐', '⭐', '⭐'].map((star, i) => (
+                <span key={i} className="text-2xl cursor-pointer hover:scale-110 transition-transform">
+                  {star}
+                </span>
+              ))}
+            </div>
+
+            <textarea
+              placeholder="Write your feedback..."
+              className="w-full bg-[#0b0f19] border border-gray-800 rounded-xl p-4 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#facc15] mb-4 h-28 resize-none"
+            />
+
+            <button
+              onClick={() => {
+                alert('Thank you for your feedback!')
+                setActiveTab('history')
+              }}
+              className="w-full bg-[#facc15] hover:bg-[#eab308] text-black font-extrabold py-3.5 rounded-xl text-sm transition-all cursor-pointer"
+            >
+              Submit Review
+            </button>
+          </div>
+        )}
+
+      </div>
     </div>
   )
 }
