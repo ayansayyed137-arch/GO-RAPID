@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 
 export default function DashboardPage() {
@@ -15,6 +15,11 @@ export default function DashboardPage() {
   const [rides, setRides] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [userEmail, setUserEmail] = useState('user@gorapid.com')
+
+  const mapRef = useRef<any>(null)
+  const polylineRef = useRef<any>(null)
+  const pickupMarkerRef = useRef<any>(null)
+  const dropoffMarkerRef = useRef<any>(null)
 
   // Get user session from localStorage or default
   useEffect(() => {
@@ -47,22 +52,72 @@ export default function DashboardPage() {
             return
           }
 
+          // Initial Map setup centered at Chhatrapati Sambhajinagar
           const map = L.map('map-container').setView([19.8762, 75.3433], 13)
+          mapRef.current = map
 
           L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; OpenStreetMap contributors',
             maxZoom: 19,
           }).addTo(map)
 
-          L.marker([19.8762, 75.3433])
-            .addTo(map)
-            .bindPopup('Chhatrapati Sambhajinagar Center')
-            .openPopup()
+          // Initial Markers and Route Line
+          updateMapRoute([19.8762, 75.3433], [19.8900, 75.3600])
         }
       }
       document.body.appendChild(script)
     }
   }, [viewMode])
+
+  // Function to draw line between Pickup and Dropoff
+  const updateMapRoute = (pickupCoords: [number, number], dropoffCoords: [number, number]) => {
+    const L = (window as any).L
+    if (!L || !mapRef.current) return
+
+    const map = mapRef.current
+
+    // Clear previous elements
+    if (pickupMarkerRef.current) map.removeLayer(pickupMarkerRef.current)
+    if (dropoffMarkerRef.current) map.removeLayer(dropoffMarkerRef.current)
+    if (polylineRef.current) map.removeLayer(polylineRef.current)
+
+    // Add Pickup & Dropoff Markers
+    pickupMarkerRef.current = L.marker(pickupCoords)
+      .addTo(map)
+      .bindPopup(`📍 Pickup: ${pickup || 'Kat Kat Gate'}`)
+      .openPopup()
+
+    dropoffMarkerRef.current = L.marker(dropoffCoords)
+      .addTo(map)
+      .bindPopup(`🏁 Dropoff: ${dropoff || 'Jafar Gate'}`)
+
+    // Draw Route Line between Pickup and Dropoff
+    const routeCoords = [pickupCoords, dropoffCoords]
+    polylineRef.current = L.polyline(routeCoords, {
+      color: '#facc15', // GoRapid Yellow Line
+      weight: 5,
+      opacity: 0.9,
+      dashArray: '10, 10', // Dashed route line style
+    }).addTo(map)
+
+    // Fit map bounds to show both markers and the connecting line
+    map.fitBounds(L.latLngBounds(routeCoords), { padding: [50, 50] })
+  }
+
+  // Update route whenever user inputs locations or distance
+  useEffect(() => {
+    if (mapRef.current) {
+      // Simulate dynamic coordinate shifts based on inputs
+      const baseLat = 19.8762
+      const baseLng = 75.3433
+      const offset = (distance || 10) * 0.008
+
+      const pickupCoords: [number, number] = [baseLat, baseLng]
+      const dropoffCoords: [number, number] = [baseLat + offset, baseLng + offset]
+
+      updateMapRoute(pickupCoords, dropoffCoords)
+    }
+  }, [pickup, dropoff, distance])
 
   // Load user-specific rides from localStorage
   useEffect(() => {
@@ -163,10 +218,10 @@ export default function DashboardPage() {
         {viewMode === 'dashboard' ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
             
-            {/* Map */}
+            {/* Interactive Map with Pickup-to-Dropoff Route Line */}
             <div className="bg-[#111827]/90 border border-gray-800 rounded-2xl overflow-hidden h-[380px] sm:h-[550px] shadow-2xl relative">
               <div className="absolute top-3 left-3 z-[1000] bg-[#111827]/90 backdrop-blur-md px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl border border-gray-800 text-[11px] sm:text-xs font-semibold shadow-lg text-white max-w-[85%] truncate">
-                📍 Chhatrapati Sambhajinagar
+                📍 Chhatrapati Sambhajinagar Live Route
               </div>
               <div id="map-container" className="w-full h-full z-0 bg-[#0b0f19]"></div>
             </div>
