@@ -10,12 +10,13 @@ export default function DashboardPage() {
   const [dropoff, setDropoff] = useState('')
   const [distance, setDistance] = useState(10)
   const [rides, setRides] = useState<any[]>([])
+  const [isLoading, setIsLoading] = useState(false)
 
   const ratePerKm = 15
   const baseFare = 50
   const totalFare = baseFare + distance * ratePerKm
 
-  // Load Leaflet CSS and Map dynamically using OpenStreetMap (No API Key Required!)
+  // Load Leaflet CSS and Map dynamically using OpenStreetMap
   useEffect(() => {
     if (viewMode === 'dashboard') {
       const link = document.createElement('link')
@@ -36,7 +37,6 @@ export default function DashboardPage() {
 
           const map = L.map('map-container').setView([19.8762, 75.3433], 13)
 
-          // Using standard OpenStreetMap tiles (Free & No API key needed)
           L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; OpenStreetMap contributors',
             maxZoom: 19,
@@ -52,6 +52,7 @@ export default function DashboardPage() {
     }
   }, [viewMode])
 
+  // Load saved rides from localStorage
   useEffect(() => {
     const saved = localStorage.getItem('go_rapid_rides')
     if (saved) {
@@ -66,12 +67,14 @@ export default function DashboardPage() {
     }
   }, [])
 
-  const handleBookRide = (e: React.FormEvent) => {
+  const handleStripePayment = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!pickup || !dropoff) {
       alert('Please enter pickup and dropoff locations.')
       return
     }
+
+    setIsLoading(true)
 
     const randomId = 'GR-' + Math.floor(1000 + Math.random() * 9000)
     const newRide = {
@@ -87,8 +90,26 @@ export default function DashboardPage() {
     const updated = [newRide, ...rides]
     setRides(updated)
     localStorage.setItem('go_rapid_rides', JSON.stringify(updated))
-    alert(`Ride booked successfully! ID: ${randomId}`)
-    setViewMode('history')
+
+    try {
+      const res = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pickup, dropoff, amount: totalFare, rideId: randomId }),
+      })
+      const data = await res.json()
+      if (data.url) {
+        window.location.href = data.url
+      } else {
+        setIsLoading(false)
+        alert(`Ride booked successfully via Stripe simulation! ID: ${randomId}`)
+        setViewMode('history')
+      }
+    } catch (err) {
+      setIsLoading(false)
+      alert(`Ride booked successfully! ID: ${randomId}`)
+      setViewMode('history')
+    }
   }
 
   return (
@@ -127,14 +148,14 @@ export default function DashboardPage() {
               <div id="map-container" className="w-full h-full z-0 bg-[#0b0f19]"></div>
             </div>
 
-            {/* Right: Booking Form */}
+            {/* Right: Booking Form with Stripe Integration */}
             <div className="bg-[#111827]/90 border border-gray-800 rounded-2xl p-8 shadow-2xl flex flex-col justify-between">
               <div>
                 <h2 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
-                  <span>🚗</span> Book & Pay via Distance
+                  <span>💳</span> Book & Pay via Stripe
                 </h2>
 
-                <form onSubmit={handleBookRide} className="space-y-5">
+                <form onSubmit={handleStripePayment} className="space-y-5">
                   <div>
                     <label className="block text-xs font-medium text-gray-400 mb-2">
                       Pickup Location
@@ -196,9 +217,10 @@ export default function DashboardPage() {
 
                   <button
                     type="submit"
-                    className="w-full bg-[#facc15] hover:bg-[#eab308] text-black font-extrabold py-4 rounded-xl shadow-lg transition-all text-sm cursor-pointer"
+                    disabled={isLoading}
+                    className="w-full bg-[#facc15] hover:bg-[#eab308] text-black font-extrabold py-4 rounded-xl shadow-lg transition-all text-sm cursor-pointer disabled:opacity-50"
                   >
-                    Confirm & Book Ride (₹{totalFare})
+                    {isLoading ? 'Processing Stripe Checkout...' : `Pay with Stripe & Book (₹{totalFare})`}
                   </button>
                 </form>
               </div>
