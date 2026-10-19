@@ -15,6 +15,47 @@ export default function DashboardPage() {
   const baseFare = 50
   const totalFare = baseFare + distance * ratePerKm
 
+  // Load Leaflet CSS and Map dynamically inside container
+  useEffect(() => {
+    if (viewMode === 'dashboard') {
+      // Inject Leaflet CSS dynamically
+      const link = document.createElement('link')
+      link.rel = 'stylesheet'
+      link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'
+      document.head.appendChild(link)
+
+      // Inject Leaflet JS dynamically
+      const script = document.createElement('script')
+      script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'
+      script.async = true
+      script.onload = () => {
+        const L = (window as any).L
+        if (L && document.getElementById('map-container')) {
+          // Prevent re-initialization if map already exists
+          const mapContainer = document.getElementById('map-container')
+          if (mapContainer && (mapContainer as any)._leaflet_id) {
+            return
+          }
+
+          // Chhatrapati Sambhajinagar Coordinates: 19.8762, 75.3433
+          const map = L.map('map-container').setView([19.8762, 75.3433], 13)
+
+          L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+            maxZoom: 19,
+          }).addTo(map)
+
+          // Add Pickup Marker
+          L.marker([19.8762, 75.3433])
+            .addTo(map)
+            .bindPopup('Chhatrapati Sambhajinagar Center')
+            .openPopup()
+        }
+      }
+      document.body.appendChild(script)
+    }
+  }, [viewMode])
+
   // Load saved rides from localStorage
   useEffect(() => {
     const saved = localStorage.getItem('go_rapid_rides')
@@ -81,23 +122,15 @@ export default function DashboardPage() {
         </div>
 
         {viewMode === 'dashboard' ? (
-          /* Dashboard Layout: Map + Booking Form */
+          /* Dashboard Layout: Full Leaflet Map + Booking Form */
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             
-            {/* Left: Map iFrame */}
+            {/* Left: Full Interactive Map */}
             <div className="bg-[#111827]/90 border border-gray-800 rounded-2xl overflow-hidden h-[550px] shadow-2xl relative">
-              <div className="absolute top-4 left-4 z-10 bg-[#111827]/90 backdrop-blur-md px-4 py-2 rounded-xl border border-gray-800 text-xs font-semibold">
-                Chhatrapati Sambhajinagar, Maharashtra, India
+              <div className="absolute top-4 left-4 z-[1000] bg-[#111827]/90 backdrop-blur-md px-4 py-2 rounded-xl border border-gray-800 text-xs font-semibold shadow-lg text-white">
+                📍 Chhatrapati Sambhajinagar, Maharashtra
               </div>
-              <iframe
-                title="CartoDB Map"
-                width="100%"
-                height="100%"
-                style={{ border: 0 }}
-                loading="lazy"
-                src="https://a.tile.openstreetmap.org/13/5938/3625.png"
-                className="w-full h-full object-cover opacity-90"
-              />
+              <div id="map-container" className="w-full h-full z-0 bg-[#0b0f19]"></div>
             </div>
 
             {/* Right: Booking Form */}
