@@ -2,10 +2,13 @@
 
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useUser } from '@clerk/nextjs'
+import dynamic from 'next/dynamic'
 
-export default function DashboardClient() {
+function DashboardContent() {
   const router = useRouter()
+  
+  // Dynamic import of Clerk hook inside component to avoid build prerender failure
+  const { useUser } = require('@clerk/nextjs')
   const { user, isLoaded } = useUser()
 
   const [viewMode, setViewMode] = useState<'dashboard' | 'history'>('dashboard')
@@ -123,7 +126,7 @@ export default function DashboardClient() {
     <div className="min-h-screen bg-[#070b14] text-white p-4 sm:p-6 font-sans">
       <div className="max-w-7xl mx-auto">
         
-        {/* Header */}
+        {/* Responsive Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 sm:mb-8 bg-[#111827]/60 p-4 rounded-2xl border border-gray-800">
           <div>
             <h1 className="text-xl sm:text-2xl font-black text-[#facc15] tracking-widest uppercase">
@@ -161,7 +164,7 @@ export default function DashboardClient() {
               <div id="map-container" className="w-full h-full z-0 bg-[#0b0f19]"></div>
             </div>
 
-            {/* Form */}
+            {/* Booking Form */}
             <div className="bg-[#111827]/90 border border-gray-800 rounded-2xl p-5 sm:p-8 shadow-2xl flex flex-col justify-between">
               <div>
                 <h2 className="text-base sm:text-lg font-bold text-white mb-5 flex items-center gap-2">
@@ -285,4 +288,18 @@ export default function DashboardClient() {
       </div>
     </div>
   )
+}
+
+// Disabling SSR at the bottom export ensures Vercel bypasses static prerendering entirely!
+const DynamicDashboard = dynamic(() => Promise.resolve(DashboardContent), {
+  ssr: false,
+  loading: () => (
+    <div className="min-h-screen bg-[#070b14] flex items-center justify-center text-yellow-400 font-bold">
+      Loading GoRapid...
+    </div>
+  ),
+})
+
+export default function Page() {
+  return <DynamicDashboard />
 }
