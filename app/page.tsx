@@ -2,13 +2,6 @@
 
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import dynamic from 'next/dynamic'
-
-// Leaflet map ko dynamic import karein taaki SSR error na aaye
-const MapComponent = dynamic(() => import('@/components/MapComponent'), {
-  ssr: false,
-  loading: () => <div className="h-full w-full bg-[#0b0f19] flex items-center justify-center text-gray-500">Loading Map...</div>,
-})
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -22,6 +15,7 @@ export default function DashboardPage() {
   const baseFare = 50
   const totalFare = baseFare + distance * ratePerKm
 
+  // Load saved rides from localStorage
   useEffect(() => {
     const saved = localStorage.getItem('go_rapid_rides')
     if (saved) {
@@ -87,12 +81,23 @@ export default function DashboardPage() {
         </div>
 
         {viewMode === 'dashboard' ? (
-          /* Main Dashboard with Map & Booking Form */
+          /* Dashboard Layout: Map + Booking Form */
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             
-            {/* Left: Map Container */}
+            {/* Left: Map iFrame */}
             <div className="bg-[#111827]/90 border border-gray-800 rounded-2xl overflow-hidden h-[550px] shadow-2xl relative">
-              <MapComponent />
+              <div className="absolute top-4 left-4 z-10 bg-[#111827]/90 backdrop-blur-md px-4 py-2 rounded-xl border border-gray-800 text-xs font-semibold">
+                Chhatrapati Sambhajinagar, Maharashtra, India
+              </div>
+              <iframe
+                title="CartoDB Map"
+                width="100%"
+                height="100%"
+                style={{ border: 0 }}
+                loading="lazy"
+                src="https://a.tile.openstreetmap.org/13/5938/3625.png"
+                className="w-full h-full object-cover opacity-90"
+              />
             </div>
 
             {/* Right: Booking Form */}
@@ -174,7 +179,7 @@ export default function DashboardPage() {
 
           </div>
         ) : (
-          /* History View */
+          /* Ride History View */
           <div className="max-w-4xl mx-auto">
             <h2 className="text-xl font-bold mb-6 text-gray-200">Your Past Rides</h2>
             <div className="space-y-4">
