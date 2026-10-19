@@ -11,7 +11,7 @@ export default function DashboardPage() {
   const [viewMode, setViewMode] = useState<'dashboard' | 'history'>('dashboard')
   const [pickup, setPickup] = useState('Kat Kat Gate')
   const [dropoff, setDropoff] = useState('Azad Chowk')
-  const [distance, setDistance] = useState(10)
+  const [distance, setDistance] = useState(5)
   const [rides, setRides] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [userEmail, setUserEmail] = useState('user@gorapid.com')
@@ -34,24 +34,20 @@ export default function DashboardPage() {
   // Load Leaflet and Leaflet Routing Machine dynamically via CDN
   useEffect(() => {
     if (viewMode === 'dashboard') {
-      // Load Leaflet CSS
       const leafletCSS = document.createElement('link')
       leafletCSS.rel = 'stylesheet'
       leafletCSS.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'
       document.head.appendChild(leafletCSS)
 
-      // Load Leaflet Routing Machine CSS
       const routingCSS = document.createElement('link')
       routingCSS.rel = 'stylesheet'
       routingCSS.href = 'https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css'
       document.head.appendChild(routingCSS)
 
-      // Load Leaflet JS
       const leafletScript = document.createElement('script')
       leafletScript.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'
       leafletScript.async = true
       leafletScript.onload = () => {
-        // Load Routing Machine JS after Leaflet is loaded
         const routingScript = document.createElement('script')
         routingScript.src = 'https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js'
         routingScript.async = true
@@ -63,8 +59,8 @@ export default function DashboardPage() {
               return
             }
 
-            // Initialize Map
-            const map = L.map('map-container').setView([19.8762, 75.3433], 13)
+            // Initialize Map strictly centered at Chhatrapati Sambhajinagar
+            const map = L.map('map-container').setView([19.8762, 75.3433], 14)
             mapRef.current = map
 
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -72,11 +68,11 @@ export default function DashboardPage() {
               maxZoom: 19,
             }).addTo(map)
 
-            // Add Google-like Turn-by-Turn Routing Control
+            // Local Sambhajinagar Waypoints (Strictly local)
             const routingControl = L.Routing.control({
               waypoints: [
-                L.latLng(19.8762, 75.3433),
-                L.latLng(19.8900, 75.3600)
+                L.latLng(19.8762, 75.3433), // Start
+                L.latLng(19.8900, 75.3600)  // End
               ],
               routeWhileDragging: false,
               addWaypoints: false,
@@ -86,13 +82,12 @@ export default function DashboardPage() {
               lineOptions: {
                 styles: [{ color: '#facc15', weight: 6, opacity: 0.9 }]
               },
-              createMarker: function(i: number, waypoint: any, n: number) {
+              createMarker: function(i: number, waypoint: any) {
                 const markerTitle = i === 0 ? `Pickup: ${pickup}` : `Dropoff: ${dropoff}`
                 return L.marker(waypoint.latLng).bindPopup(markerTitle)
               }
             }).addTo(map)
 
-            // Hide default text instruction box to keep clean UI
             const container = routingControl.getContainer()
             if (container) {
               container.style.display = 'none'
@@ -107,16 +102,14 @@ export default function DashboardPage() {
     }
   }, [viewMode])
 
-  // Update route points when user changes inputs or distance
+  // Update route strictly within local Sambhajinagar coordinates
   useEffect(() => {
     const L = (window as any).L
     if (L && routingControlRef.current) {
-      const baseLat = 19.8762
-      const baseLng = 75.3433
-      const offset = (distance || 10) * 0.005
-
-      const startLatLng = L.latLng(baseLat, baseLng)
-      const endLatLng = L.latLng(baseLat + offset, baseLat + offset)
+      // Safe local offset so it never leaves the city bounds
+      const localOffset = (distance || 5) * 0.0015
+      const startLatLng = L.latLng(19.8762, 75.3433)
+      const endLatLng = L.latLng(19.8762 + localOffset, 75.3433 + localOffset)
 
       routingControlRef.current.setWaypoints([startLatLng, endLatLng])
     }
@@ -208,7 +201,7 @@ export default function DashboardPage() {
             {/* Map Container */}
             <div className="bg-[#111827]/90 border border-gray-800 rounded-2xl overflow-hidden h-[380px] sm:h-[550px] shadow-2xl relative">
               <div className="absolute top-3 left-3 z-[1000] bg-[#111827]/90 backdrop-blur-md px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl border border-gray-800 text-[11px] sm:text-xs font-semibold shadow-lg text-white max-w-[85%] truncate">
-                📍 Turn-by-Turn Route Navigation
+                📍 Chhatrapati Sambhajinagar Local Route
               </div>
               <div id="map-container" className="w-full h-full z-0 bg-[#0b0f19]"></div>
             </div>
