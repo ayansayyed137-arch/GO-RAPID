@@ -7,36 +7,33 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
 
 export async function POST(req: Request) {
   try {
-    const { pickup, dropoff, email, distanceKm, amount } = await req.json()
-    const origin = req.headers.get('origin') || 'https://go-rapid-67nx.vercel.app'
+    const { pickup, dropoff, amount, rideId } = await req.json()
 
-    const distance = Number(distanceKm) > 0 ? Number(distanceKm) : 10
-    const calculatedAmount = Number(amount) > 0 ? Number(amount) : (50 + distance * 15)
+    const origin = req.headers.get('origin') || 'http://localhost:3000'
 
     const session = await stripe.checkout.sessions.create({
-      customer_email: email,
       payment_method_types: ['card'],
       line_items: [
         {
           price_data: {
             currency: 'inr',
             product_data: {
-              name: `Ride Booking (${distance} KM)`,
-              description: `From ${pickup || 'Pickup'} to ${dropoff || 'Dropoff'} (Base ₹50 + ₹15/KM)`,
+              name: `GoRapid Ride: ${pickup} to ${dropoff}`,
+              description: `Ride ID: ${rideId}`,
             },
-            unit_amount: Math.round(calculatedAmount * 100),
+            unit_amount: amount * 100, // Amount in paise
           },
           quantity: 1,
         },
       ],
       mode: 'payment',
-      success_url: `${origin}/manage?success=true`,
-      cancel_url: `${origin}/?canceled=true`,
-    } as any)
+      // Wapas aane par seedha main dashboard page (/?success=true) khulega
+      success_url: `${origin}/?booking=success&rideId=${rideId}`,
+      cancel_url: `${origin}/?booking=cancelled`,
+    })
 
     return NextResponse.json({ url: session.url })
-  } catch (err: any) {
-    console.error('Stripe Checkout Error:', err)
-    return NextResponse.json({ error: err.message }, { status: 500 })
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
