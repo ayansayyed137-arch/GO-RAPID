@@ -1,12 +1,10 @@
 'use client'
 
-export const dynamic = 'force-dynamic'
-
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useUser } from '@clerk/nextjs'
 
-export default function DashboardPage() {
+export default function DashboardClient() {
   const router = useRouter()
   const { user, isLoaded } = useUser()
 
@@ -16,7 +14,6 @@ export default function DashboardPage() {
   const [distance, setDistance] = useState(10)
   const [rides, setRides] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(false)
-  const [isMounted, setIsMounted] = useState(false)
 
   const userEmail = isLoaded && user?.primaryEmailAddress?.emailAddress 
     ? user.primaryEmailAddress.emailAddress 
@@ -26,13 +23,9 @@ export default function DashboardPage() {
   const baseFare = 50
   const totalFare = baseFare + distance * ratePerKm
 
-  useEffect(() => {
-    setIsMounted(true)
-  }, [])
-
   // Load Leaflet Map dynamically
   useEffect(() => {
-    if (viewMode === 'dashboard' && isMounted) {
+    if (viewMode === 'dashboard') {
       const link = document.createElement('link')
       link.rel = 'stylesheet'
       link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'
@@ -64,11 +57,11 @@ export default function DashboardPage() {
       }
       document.body.appendChild(script)
     }
-  }, [viewMode, isMounted])
+  }, [viewMode])
 
   // Load user-specific rides from localStorage
   useEffect(() => {
-    if (!isMounted || !userEmail) return
+    if (!userEmail) return
     const storageKey = `go_rapid_rides_${userEmail}`
     const saved = localStorage.getItem(storageKey)
     
@@ -77,7 +70,7 @@ export default function DashboardPage() {
     } else {
       setRides([])
     }
-  }, [userEmail, isMounted])
+  }, [userEmail])
 
   const handleStripePayment = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -126,19 +119,11 @@ export default function DashboardPage() {
     }
   }
 
-  if (!isMounted) {
-    return (
-      <div className="min-h-screen bg-[#070b14] flex items-center justify-center text-yellow-400 font-bold">
-        Loading GoRapid...
-      </div>
-    )
-  }
-
   return (
     <div className="min-h-screen bg-[#070b14] text-white p-4 sm:p-6 font-sans">
       <div className="max-w-7xl mx-auto">
         
-        {/* Mobile & Desktop Responsive Header */}
+        {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 sm:mb-8 bg-[#111827]/60 p-4 rounded-2xl border border-gray-800">
           <div>
             <h1 className="text-xl sm:text-2xl font-black text-[#facc15] tracking-widest uppercase">
@@ -168,7 +153,7 @@ export default function DashboardPage() {
         {viewMode === 'dashboard' ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
             
-            {/* Left: Responsive Interactive Map */}
+            {/* Map */}
             <div className="bg-[#111827]/90 border border-gray-800 rounded-2xl overflow-hidden h-[380px] sm:h-[550px] shadow-2xl relative">
               <div className="absolute top-3 left-3 z-[1000] bg-[#111827]/90 backdrop-blur-md px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl border border-gray-800 text-[11px] sm:text-xs font-semibold shadow-lg text-white max-w-[85%] truncate">
                 📍 Chhatrapati Sambhajinagar
@@ -176,7 +161,7 @@ export default function DashboardPage() {
               <div id="map-container" className="w-full h-full z-0 bg-[#0b0f19]"></div>
             </div>
 
-            {/* Right: Booking Form with Stripe */}
+            {/* Form */}
             <div className="bg-[#111827]/90 border border-gray-800 rounded-2xl p-5 sm:p-8 shadow-2xl flex flex-col justify-between">
               <div>
                 <h2 className="text-base sm:text-lg font-bold text-white mb-5 flex items-center gap-2">
@@ -256,7 +241,7 @@ export default function DashboardPage() {
 
           </div>
         ) : (
-          /* User Isolated Ride History View */
+          /* Ride History */
           <div className="max-w-4xl mx-auto">
             <h2 className="text-lg sm:text-xl font-bold mb-6 text-gray-200">
               Your Past Rides (<span className="text-[#facc15]">{userEmail}</span>)
