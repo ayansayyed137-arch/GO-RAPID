@@ -9,8 +9,8 @@ export default function DashboardPage() {
   const router = useRouter()
   
   const [viewMode, setViewMode] = useState<'dashboard' | 'history'>('dashboard')
-  const [pickup, setPickup] = useState('')
-  const [dropoff, setDropoff] = useState('')
+  const [pickup, setPickup] = useState('Kat Kat Gate')
+  const [dropoff, setDropoff] = useState('Azad Chowk')
   const [distance, setDistance] = useState(10)
   const [rides, setRides] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -61,61 +61,69 @@ export default function DashboardPage() {
             maxZoom: 19,
           }).addTo(map)
 
-          // Initial Markers and Route Line
-          updateMapRoute([19.8762, 75.3433], [19.8900, 75.3600])
+          fetchAndDrawRoute([75.3433, 19.8762], [75.3600, 19.8900])
         }
       }
       document.body.appendChild(script)
     }
   }, [viewMode])
 
-  // Function to draw line between Pickup and Dropoff
-  const updateMapRoute = (pickupCoords: [number, number], dropoffCoords: [number, number]) => {
+  // Fetch actual road turn-by-turn route using OSRM API
+  const fetchAndDrawRoute = async (startCoord: [number, number], endCoord: [number, number]) => {
     const L = (window as any).L
     if (!L || !mapRef.current) return
 
     const map = mapRef.current
 
-    // Clear previous elements
-    if (pickupMarkerRef.current) map.removeLayer(pickupMarkerRef.current)
-    if (dropoffMarkerRef.current) map.removeLayer(dropoffMarkerRef.current)
-    if (polylineRef.current) map.removeLayer(polylineRef.current)
+    try {
+      const response = await fetch(
+        `https://router.project-osrm.org/route/v1/driving/${startCoord[0]},${startCoord[1]};${endCoord[0]},${endCoord[1]}?overview=full&geometries=geojson`
+      )
+      const data = await response.json()
 
-    // Add Pickup & Dropoff Markers
-    pickupMarkerRef.current = L.marker(pickupCoords)
-      .addTo(map)
-      .bindPopup(`📍 Pickup: ${pickup || 'Kat Kat Gate'}`)
-      .openPopup()
+      if (data.routes && data.routes.length > 0) {
+        const routeCoords = data.routes[0].geometry.coordinates.map((coord: [number, number]) => [coord[1], coord[0]])
 
-    dropoffMarkerRef.current = L.marker(dropoffCoords)
-      .addTo(map)
-      .bindPopup(`🏁 Dropoff: ${dropoff || 'Jafar Gate'}`)
+        // Clear previous elements
+        if (pickupMarkerRef.current) map.removeLayer(pickupMarkerRef.current)
+        if (dropoffMarkerRef.current) map.removeLayer(dropoffMarkerRef.current)
+        if (polylineRef.current) map.removeLayer(polylineRef.current)
 
-    // Draw Route Line between Pickup and Dropoff
-    const routeCoords = [pickupCoords, dropoffCoords]
-    polylineRef.current = L.polyline(routeCoords, {
-      color: '#facc15', // GoRapid Yellow Line
-      weight: 5,
-      opacity: 0.9,
-      dashArray: '10, 10', // Dashed route line style
-    }).addTo(map)
+        // Add Markers
+        pickupMarkerRef.current = L.marker([startCoord[1], startCoord[0]])
+          .addTo(map)
+          .bindPopup(`📍 Pickup: ${pickup}`)
+          .openPopup()
 
-    // Fit map bounds to show both markers and the connecting line
-    map.fitBounds(L.latLngBounds(routeCoords), { padding: [50, 50] })
+        dropoffMarkerRef.current = L.marker([endCoord[1], endCoord[0]])
+          .addTo(map)
+          .bindPopup(`🏁 Dropoff: ${dropoff}`)
+
+        // Draw turn-by-turn road polyline
+        polylineRef.current = L.polyline(routeCoords, {
+          color: '#facc15', // GoRapid Yellow Route
+          weight: 6,
+          opacity: 0.9,
+        }).addTo(map)
+
+        map.fitBounds(polylineRef.current.getBounds(), { padding: [50, 50] })
+      }
+    } catch (error) {
+      console.error('Error fetching route:', error)
+    }
   }
 
   // Update route whenever user inputs locations or distance
   useEffect(() => {
     if (mapRef.current) {
-      // Simulate dynamic coordinate shifts based on inputs
-      const baseLat = 19.8762
       const baseLng = 75.3433
-      const offset = (distance || 10) * 0.008
+      const baseLat = 19.8762
+      const offset = (distance || 10) * 0.005
 
-      const pickupCoords: [number, number] = [baseLat, baseLng]
-      const dropoffCoords: [number, number] = [baseLat + offset, baseLng + offset]
+      const startCoord: [number, number] = [baseLng, baseLat]
+      const endCoord: [number, number] = [baseLng + offset, baseLat + offset]
 
-      updateMapRoute(pickupCoords, dropoffCoords)
+      fetchAndDrawRoute(startCoord, endCoord)
     }
   }, [pickup, dropoff, distance])
 
@@ -218,10 +226,10 @@ export default function DashboardPage() {
         {viewMode === 'dashboard' ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
             
-            {/* Interactive Map with Pickup-to-Dropoff Route Line */}
+            {/* Interactive Map with Turn-by-Turn Road Route */}
             <div className="bg-[#111827]/90 border border-gray-800 rounded-2xl overflow-hidden h-[380px] sm:h-[550px] shadow-2xl relative">
               <div className="absolute top-3 left-3 z-[1000] bg-[#111827]/90 backdrop-blur-md px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl border border-gray-800 text-[11px] sm:text-xs font-semibold shadow-lg text-white max-w-[85%] truncate">
-                📍 Chhatrapati Sambhajinagar Live Route
+                📍 Turn-by-Turn Route Navigation
               </div>
               <div id="map-container" className="w-full h-full z-0 bg-[#0b0f19]"></div>
             </div>
@@ -255,7 +263,7 @@ export default function DashboardPage() {
                     <input
                       type="text"
                       required
-                      placeholder="e.g., Jafar Gate"
+                      placeholder="e.g., Azad Chowk"
                       value={dropoff}
                       onChange={(e) => setDropoff(e.target.value)}
                       className="w-full bg-[#0b0f19] border border-gray-800 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#facc15]"
