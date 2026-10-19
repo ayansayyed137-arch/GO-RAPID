@@ -75,8 +75,8 @@ export default function DashboardPage() {
             // Add Google-like Turn-by-Turn Routing Control
             const routingControl = L.Routing.control({
               waypoints: [
-                L.latLng(19.8762, 75.3433), // Kat Kat Gate
-                L.latLng(19.8900, 75.3600)  // Azad Chowk
+                L.latLng(19.8762, 75.3433),
+                L.latLng(19.8900, 75.3600)
               ],
               routeWhileDragging: false,
               addWaypoints: false,
@@ -84,7 +84,7 @@ export default function DashboardPage() {
               fitSelectedRoutes: true,
               showAlternatives: false,
               lineOptions: {
-                styles: [{ color: '#facc15', weight: 6, opacity: 0.9 }] // GoRapid Yellow Route
+                styles: [{ color: '#facc15', weight: 6, opacity: 0.9 }]
               },
               createMarker: function(i: number, waypoint: any, n: number) {
                 const markerTitle = i === 0 ? `Pickup: ${pickup}` : `Dropoff: ${dropoff}`
@@ -116,7 +116,7 @@ export default function DashboardPage() {
       const offset = (distance || 10) * 0.005
 
       const startLatLng = L.latLng(baseLat, baseLng)
-      const endLatLng = L.latLng(baseLat + offset, baseLng + offset)
+      const endLatLng = L.latLng(baseLat + offset, baseLat + offset)
 
       routingControlRef.current.setWaypoints([startLatLng, endLatLng])
     }
@@ -138,7 +138,7 @@ export default function DashboardPage() {
   const handleStripePayment = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!pickup || !dropoff) {
-      alert('Please enter pickup and dropoff locations.')
+      alert('Kripya pickup aur dropoff locations dalein.')
       return
     }
 
@@ -161,25 +161,9 @@ export default function DashboardPage() {
     const storageKey = `go_rapid_rides_${userEmail}`
     localStorage.setItem(storageKey, JSON.stringify(updated))
 
-    try {
-      const res = await fetch('/api/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pickup, dropoff, amount: 50 + distance * 15, rideId: randomId }),
-      })
-      const data = await res.json()
-      if (data.url) {
-        window.location.href = data.url
-      } else {
-        setIsLoading(false)
-        alert(`Ride successfully booked! ID: ${randomId}`)
-        setViewMode('history')
-      }
-    } catch (err) {
-      setIsLoading(false)
-      alert(`Ride successfully booked! ID: ${randomId}`)
-      setViewMode('history')
-    }
+    setIsLoading(false)
+    alert(`Ride successfully book ho gayi! ID: ${randomId}`)
+    setViewMode('history')
   }
 
   const handleSignOut = () => {
@@ -221,10 +205,10 @@ export default function DashboardPage() {
         {viewMode === 'dashboard' ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
             
-            {/* Map with Google-like Turn Routing */}
+            {/* Map Container */}
             <div className="bg-[#111827]/90 border border-gray-800 rounded-2xl overflow-hidden h-[380px] sm:h-[550px] shadow-2xl relative">
               <div className="absolute top-3 left-3 z-[1000] bg-[#111827]/90 backdrop-blur-md px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl border border-gray-800 text-[11px] sm:text-xs font-semibold shadow-lg text-white max-w-[85%] truncate">
-                📍 Google Maps Style Turn-by-Turn Routing
+                📍 Turn-by-Turn Route Navigation
               </div>
               <div id="map-container" className="w-full h-full z-0 bg-[#0b0f19]"></div>
             </div>
@@ -301,7 +285,7 @@ export default function DashboardPage() {
                     disabled={isLoading}
                     className="w-full bg-[#facc15] hover:bg-[#eab308] text-black font-extrabold py-3.5 sm:py-4 rounded-xl shadow-lg transition-all text-sm cursor-pointer disabled:opacity-50"
                   >
-                    {isLoading ? 'Processing Stripe Checkout...' : `Pay with Stripe & Book (₹{50 + distance * 15})`}
+                    {isLoading ? 'Processing...' : `Pay with Stripe & Book (₹{50 + distance * 15})`}
                   </button>
                 </form>
               </div>
