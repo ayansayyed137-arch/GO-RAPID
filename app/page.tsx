@@ -17,9 +17,7 @@ export default function DashboardPage() {
   const [userEmail, setUserEmail] = useState('user@gorapid.com')
 
   const mapRef = useRef<any>(null)
-  const polylineRef = useRef<any>(null)
-  const pickupMarkerRef = useRef<any>(null)
-  const dropoffMarkerRef = useRef<any>(null)
+  const routingControlRef = useRef<any>(null)
 
   // Get user session from localStorage or default
   useEffect(() => {
@@ -33,97 +31,94 @@ export default function DashboardPage() {
     }
   }, [])
 
-  // Load Leaflet Map dynamically
+  // Load Leaflet and Leaflet Routing Machine dynamically via CDN
   useEffect(() => {
     if (viewMode === 'dashboard') {
-      const link = document.createElement('link')
-      link.rel = 'stylesheet'
-      link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'
-      document.head.appendChild(link)
+      // Load Leaflet CSS
+      const leafletCSS = document.createElement('link')
+      leafletCSS.rel = 'stylesheet'
+      leafletCSS.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'
+      document.head.appendChild(leafletCSS)
 
-      const script = document.createElement('script')
-      script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'
-      script.async = true
-      script.onload = () => {
-        const L = (window as any).L
-        if (L && document.getElementById('map-container')) {
-          const mapContainer = document.getElementById('map-container')
-          if (mapContainer && (mapContainer as any)._leaflet_id) {
-            return
+      // Load Leaflet Routing Machine CSS
+      const routingCSS = document.createElement('link')
+      routingCSS.rel = 'stylesheet'
+      routingCSS.href = 'https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css'
+      document.head.appendChild(routingCSS)
+
+      // Load Leaflet JS
+      const leafletScript = document.createElement('script')
+      leafletScript.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'
+      leafletScript.async = true
+      leafletScript.onload = () => {
+        // Load Routing Machine JS after Leaflet is loaded
+        const routingScript = document.createElement('script')
+        routingScript.src = 'https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js'
+        routingScript.async = true
+        routingScript.onload = () => {
+          const L = (window as any).L
+          if (L && document.getElementById('map-container')) {
+            const mapContainer = document.getElementById('map-container')
+            if (mapContainer && (mapContainer as any)._leaflet_id) {
+              return
+            }
+
+            // Initialize Map
+            const map = L.map('map-container').setView([19.8762, 75.3433], 13)
+            mapRef.current = map
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+              attribution: '&copy; OpenStreetMap contributors',
+              maxZoom: 19,
+            }).addTo(map)
+
+            // Add Google-like Turn-by-Turn Routing Control
+            const routingControl = L.Routing.control({
+              waypoints: [
+                L.latLng(19.8762, 75.3433), // Kat Kat Gate
+                L.latLng(19.8900, 75.3600)  // Azad Chowk
+              ],
+              routeWhileDragging: false,
+              addWaypoints: false,
+              draggableWaypoints: false,
+              fitSelectedRoutes: true,
+              showAlternatives: false,
+              lineOptions: {
+                styles: [{ color: '#facc15', weight: 6, opacity: 0.9 }] // GoRapid Yellow Route
+              },
+              createMarker: function(i: number, waypoint: any, n: number) {
+                const markerTitle = i === 0 ? `Pickup: ${pickup}` : `Dropoff: ${dropoff}`
+                return L.marker(waypoint.latLng).bindPopup(markerTitle)
+              }
+            }).addTo(map)
+
+            // Hide default text instruction box to keep clean UI
+            const container = routingControl.getContainer()
+            if (container) {
+              container.style.display = 'none'
+            }
+
+            routingControlRef.current = routingControl
           }
-
-          // Initial Map setup centered at Chhatrapati Sambhajinagar
-          const map = L.map('map-container').setView([19.8762, 75.3433], 13)
-          mapRef.current = map
-
-          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; OpenStreetMap contributors',
-            maxZoom: 19,
-          }).addTo(map)
-
-          fetchAndDrawRoute([75.3433, 19.8762], [75.3600, 19.8900])
         }
+        document.body.appendChild(routingScript)
       }
-      document.body.appendChild(script)
+      document.body.appendChild(leafletScript)
     }
   }, [viewMode])
 
-  // Fetch actual road turn-by-turn route using OSRM API
-  const fetchAndDrawRoute = async (startCoord: [number, number], endCoord: [number, number]) => {
-    const L = (window as any).L
-    if (!L || !mapRef.current) return
-
-    const map = mapRef.current
-
-    try {
-      const response = await fetch(
-        `https://router.project-osrm.org/route/v1/driving/${startCoord[0]},${startCoord[1]};${endCoord[0]},${endCoord[1]}?overview=full&geometries=geojson`
-      )
-      const data = await response.json()
-
-      if (data.routes && data.routes.length > 0) {
-        const routeCoords = data.routes[0].geometry.coordinates.map((coord: [number, number]) => [coord[1], coord[0]])
-
-        // Clear previous elements
-        if (pickupMarkerRef.current) map.removeLayer(pickupMarkerRef.current)
-        if (dropoffMarkerRef.current) map.removeLayer(dropoffMarkerRef.current)
-        if (polylineRef.current) map.removeLayer(polylineRef.current)
-
-        // Add Markers
-        pickupMarkerRef.current = L.marker([startCoord[1], startCoord[0]])
-          .addTo(map)
-          .bindPopup(`📍 Pickup: ${pickup}`)
-          .openPopup()
-
-        dropoffMarkerRef.current = L.marker([endCoord[1], endCoord[0]])
-          .addTo(map)
-          .bindPopup(`🏁 Dropoff: ${dropoff}`)
-
-        // Draw turn-by-turn road polyline
-        polylineRef.current = L.polyline(routeCoords, {
-          color: '#facc15', // GoRapid Yellow Route
-          weight: 6,
-          opacity: 0.9,
-        }).addTo(map)
-
-        map.fitBounds(polylineRef.current.getBounds(), { padding: [50, 50] })
-      }
-    } catch (error) {
-      console.error('Error fetching route:', error)
-    }
-  }
-
-  // Update route whenever user inputs locations or distance
+  // Update route points when user changes inputs or distance
   useEffect(() => {
-    if (mapRef.current) {
-      const baseLng = 75.3433
+    const L = (window as any).L
+    if (L && routingControlRef.current) {
       const baseLat = 19.8762
+      const baseLng = 75.3433
       const offset = (distance || 10) * 0.005
 
-      const startCoord: [number, number] = [baseLng, baseLat]
-      const endCoord: [number, number] = [baseLng + offset, baseLat + offset]
+      const startLatLng = L.latLng(baseLat, baseLng)
+      const endLatLng = L.latLng(baseLat + offset, baseLng + offset)
 
-      fetchAndDrawRoute(startCoord, endCoord)
+      routingControlRef.current.setWaypoints([startLatLng, endLatLng])
     }
   }, [pickup, dropoff, distance])
 
@@ -226,10 +221,10 @@ export default function DashboardPage() {
         {viewMode === 'dashboard' ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
             
-            {/* Interactive Map with Turn-by-Turn Road Route */}
+            {/* Map with Google-like Turn Routing */}
             <div className="bg-[#111827]/90 border border-gray-800 rounded-2xl overflow-hidden h-[380px] sm:h-[550px] shadow-2xl relative">
               <div className="absolute top-3 left-3 z-[1000] bg-[#111827]/90 backdrop-blur-md px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl border border-gray-800 text-[11px] sm:text-xs font-semibold shadow-lg text-white max-w-[85%] truncate">
-                📍 Turn-by-Turn Route Navigation
+                📍 Google Maps Style Turn-by-Turn Routing
               </div>
               <div id="map-container" className="w-full h-full z-0 bg-[#0b0f19]"></div>
             </div>
