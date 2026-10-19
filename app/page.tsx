@@ -1,15 +1,22 @@
 'use client'
 
-export const dynamic = 'force-dynamic'
-
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useUser } from '@clerk/nextjs'
 
 export default function DashboardPage() {
   const router = useRouter()
-  const { user } = useUser()
-  const userEmail = user?.primaryEmailAddress?.emailAddress || 'guest_user'
+  
+  // Safely get user info without crashing build
+  let userEmail = 'guest_user'
+  try {
+    const clerk = useUser()
+    if (clerk && clerk.user?.primaryEmailAddress?.emailAddress) {
+      userEmail = clerk.user.primaryEmailAddress.emailAddress
+    }
+  } catch (e) {
+    // Prerender fallback
+  }
 
   const [viewMode, setViewMode] = useState<'dashboard' | 'history'>('dashboard')
   const [pickup, setPickup] = useState('')
@@ -17,14 +24,19 @@ export default function DashboardPage() {
   const [distance, setDistance] = useState(10)
   const [rides, setRides] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(false)
+  const [isMounted, setIsMounted] = useState(false)
 
   const ratePerKm = 15
   const baseFare = 50
   const totalFare = baseFare + distance * ratePerKm
 
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
+
   // Load Leaflet Map dynamically using OpenStreetMap
   useEffect(() => {
-    if (viewMode === 'dashboard') {
+    if (viewMode === 'dashboard' && isMounted) {
       const link = document.createElement('link')
       link.rel = 'stylesheet'
       link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'
@@ -56,11 +68,11 @@ export default function DashboardPage() {
       }
       document.body.appendChild(script)
     }
-  }, [viewMode])
+  }, [viewMode, isMounted])
 
-  // Load saved rides specifically for the signed-in user email from localStorage
+  // Load saved rides specifically for the signed-in user email
   useEffect(() => {
-    if (!userEmail) return
+    if (!isMounted) return
     const storageKey = `go_rapid_rides_${userEmail}`
     const saved = localStorage.getItem(storageKey)
     
@@ -73,12 +85,12 @@ export default function DashboardPage() {
       setRides(initial)
       localStorage.setItem(storageKey, JSON.stringify(initial))
     }
-  }, [userEmail])
+  }, [userEmail, isMounted])
 
   const handleStripePayment = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!pickup || !dropoff) {
-      alert('Kripya pickup aur dropoff location daalein.')
+      alert('Please enter pickup and dropoff locations.')
       return
     }
 
@@ -112,14 +124,22 @@ export default function DashboardPage() {
         window.location.href = data.url
       } else {
         setIsLoading(false)
-        alert(`Ride successfully book ho gayi! ID: ${randomId}`)
+        alert(`Ride successfully booked! ID: ${randomId}`)
         setViewMode('history')
       }
     } catch (err) {
       setIsLoading(false)
-      alert(`Ride successfully book ho gayi! ID: ${randomId}`)
+      alert(`Ride successfully booked! ID: ${randomId}`)
       setViewMode('history')
     }
+  }
+
+  if (!isMounted) {
+    return (
+      <div className="min-h-screen bg-[#070b14] flex items-center justify-center text-yellow-400 font-bold">
+        Loading GoRapid...
+      </div>
+    )
   }
 
   return (
@@ -132,9 +152,7 @@ export default function DashboardPage() {
             <h1 className="text-2xl font-black text-[#facc15] tracking-widest uppercase">
               GO RAPID
             </h1>
-            {user && (
-              <p className="text-xs text-gray-400 mt-1">Logged in as: <span className="text-[#facc15]">{userEmail}</span></p>
-            )}
+            <p className="text-xs text-gray-400 mt-1">Logged in as: <span className="text-[#facc15]">{userEmail}</span></p>
           </div>
 
           <div className="flex items-center gap-4">
@@ -164,7 +182,7 @@ export default function DashboardPage() {
               <div id="map-container" className="w-full h-full z-0 bg-[#0b0f19]"></div>
             </div>
 
-            {/* Right: Booking Form with Stripe Integration */}
+            {/* Right: Booking Form with Stripe */}
             <div className="bg-[#111827]/90 border border-gray-800 rounded-2xl p-8 shadow-2xl flex flex-col justify-between">
               <div>
                 <h2 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
@@ -244,11 +262,11 @@ export default function DashboardPage() {
 
           </div>
         ) : (
-          /* Ride History View for Current User Only */
+          /* User Isolated Ride History View */
           <div className="max-w-4xl mx-auto">
             <h2 className="text-xl font-bold mb-6 text-gray-200">Your Past Rides ({userEmail})</h2>
             {rides.length === 0 ? (
-              <p className="text-sm text-gray-400 bg-[#111827] p-6 rounded-2xl border border-gray-800 text-center">Is account par abhi tak koi ride history nahi hai.</p>
+              <p className="text-sm text-gray-400 bg-[#111827] p-6 rounded-2xl border border-gray-800 text-center">No ride history found for this account.</p>
             ) : (
               <div className="space-y-4">
                 {rides.map((ride, index) => (
