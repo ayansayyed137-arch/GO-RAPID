@@ -19,6 +19,8 @@ export default function DashboardPage() {
   const mapRef = useRef<any>(null)
   const routingControlRef = useRef<any>(null)
 
+  const totalFare = 50 + distance * 15
+
   // Get user session from localStorage or default
   useEffect(() => {
     const savedUser = localStorage.getItem('go_rapid_user')
@@ -59,7 +61,6 @@ export default function DashboardPage() {
               return
             }
 
-            // Initialize Map strictly centered at Chhatrapati Sambhajinagar
             const map = L.map('map-container').setView([19.8762, 75.3433], 14)
             mapRef.current = map
 
@@ -68,11 +69,10 @@ export default function DashboardPage() {
               maxZoom: 19,
             }).addTo(map)
 
-            // Local Sambhajinagar Waypoints (Strictly local)
             const routingControl = L.Routing.control({
               waypoints: [
-                L.latLng(19.8762, 75.3433), // Start
-                L.latLng(19.8900, 75.3600)  // End
+                L.latLng(19.8762, 75.3433),
+                L.latLng(19.8900, 75.3600)
               ],
               routeWhileDragging: false,
               addWaypoints: false,
@@ -102,11 +102,9 @@ export default function DashboardPage() {
     }
   }, [viewMode])
 
-  // Update route strictly within local Sambhajinagar coordinates
   useEffect(() => {
     const L = (window as any).L
     if (L && routingControlRef.current) {
-      // Safe local offset so it never leaves the city bounds
       const localOffset = (distance || 5) * 0.0015
       const startLatLng = L.latLng(19.8762, 75.3433)
       const endLatLng = L.latLng(19.8762 + localOffset, 75.3433 + localOffset)
@@ -115,7 +113,6 @@ export default function DashboardPage() {
     }
   }, [pickup, dropoff, distance])
 
-  // Load user-specific rides from localStorage
   useEffect(() => {
     if (!userEmail) return
     const storageKey = `go_rapid_rides_${userEmail}`
@@ -128,6 +125,7 @@ export default function DashboardPage() {
     }
   }, [userEmail])
 
+  // Restored Stripe Checkout API Integration
   const handleStripePayment = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!pickup || !dropoff) {
@@ -145,7 +143,7 @@ export default function DashboardPage() {
       from: pickup,
       to: dropoff,
       distance: distance + ' KM',
-      fare: '₹' + (50 + distance * 15),
+      fare: '₹' + totalFare,
     }
 
     const updated = [newRide, ...rides]
@@ -154,9 +152,25 @@ export default function DashboardPage() {
     const storageKey = `go_rapid_rides_${userEmail}`
     localStorage.setItem(storageKey, JSON.stringify(updated))
 
-    setIsLoading(false)
-    alert(`Ride successfully book ho gayi! ID: ${randomId}`)
-    setViewMode('history')
+    try {
+      const res = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pickup, dropoff, amount: totalFare, rideId: randomId }),
+      })
+      const data = await res.json()
+      if (data.url) {
+        window.location.href = data.url // Redirects to Stripe Checkout Dashboard
+      } else {
+        setIsLoading(false)
+        alert(`Ride booked successfully! ID: ${randomId}`)
+        setViewMode('history')
+      }
+    } catch (err) {
+      setIsLoading(false)
+      alert(`Ride booked successfully! ID: ${randomId}`)
+      setViewMode('history')
+    }
   }
 
   const handleSignOut = () => {
@@ -269,7 +283,7 @@ export default function DashboardPage() {
                     </div>
                     <div className="border-t border-gray-800 pt-2 flex justify-between text-sm font-bold text-white">
                       <span>Total Fare</span>
-                      <span className="text-[#facc15]">₹{50 + distance * 15}</span>
+                      <span className="text-[#facc15]">₹{totalFare}</span>
                     </div>
                   </div>
 
@@ -278,7 +292,7 @@ export default function DashboardPage() {
                     disabled={isLoading}
                     className="w-full bg-[#facc15] hover:bg-[#eab308] text-black font-extrabold py-3.5 sm:py-4 rounded-xl shadow-lg transition-all text-sm cursor-pointer disabled:opacity-50"
                   >
-                    {isLoading ? 'Processing...' : `Pay with Stripe & Book (₹{50 + distance * 15})`}
+                    {isLoading ? 'Redirecting to Stripe...' : `Pay with Stripe & Book (₹${totalFare})`}
                   </button>
                 </form>
               </div>
