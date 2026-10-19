@@ -14,7 +14,13 @@ export default function DashboardPage() {
   const [distance, setDistance] = useState(5)
   const [rides, setRides] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(false)
-  const [userEmail, setUserEmail] = useState('user@gorapid.com')
+  const [userEmail, setUserEmail] = useState('sayyedayan@gmail.com')
+
+  // Modals state for Receipt & Review
+  const [selectedReceipt, setSelectedReceipt] = useState<any>(null)
+  const [selectedReviewRide, setSelectedReviewRide] = useState<any>(null)
+  const [reviewRating, setReviewRating] = useState(5)
+  const [reviewText, setReviewText] = useState('')
 
   const mapRef = useRef<any>(null)
   const routingControlRef = useRef<any>(null)
@@ -27,7 +33,7 @@ export default function DashboardPage() {
     if (savedUser) {
       setUserEmail(savedUser)
     } else {
-      const email = prompt('Enter your email or username to continue:') || 'user@gorapid.com'
+      const email = prompt('Enter your email or username to continue:') || 'sayyedayan@gmail.com'
       localStorage.setItem('go_rapid_user', email)
       setUserEmail(email)
     }
@@ -135,7 +141,35 @@ export default function DashboardPage() {
     }
   }
 
-  // Stripe Checkout API Integration (Without premature fake saving)
+  // Submit Review Handler
+  const handleSaveReview = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!selectedReviewRide) return
+
+    const updatedRides = rides.map((r) => {
+      if (r.id === selectedReviewRide.id) {
+        return {
+          ...r,
+          review: {
+            rating: reviewRating,
+            text: reviewText || 'Great ride experience!',
+          },
+        }
+      }
+      return r
+    })
+
+    setRides(updatedRides)
+    const storageKey = `go_rapid_rides_${userEmail}`
+    localStorage.setItem(storageKey, JSON.stringify(updatedRides))
+
+    setSelectedReviewRide(null)
+    setReviewText('')
+    setReviewRating(5)
+    alert('Review submitted successfully!')
+  }
+
+  // Stripe Payment & Ride Creation
   const handleStripePayment = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!pickup || !dropoff) {
@@ -153,7 +187,11 @@ export default function DashboardPage() {
       from: pickup,
       to: dropoff,
       distance: distance + ' KM',
+      distanceNum: distance,
+      baseFare: 50,
+      distanceFare: distance * 15,
       fare: '₹' + totalFare,
+      fareNum: totalFare,
     }
 
     try {
@@ -164,14 +202,13 @@ export default function DashboardPage() {
       })
       const data = await res.json()
       
-      // Save to history only when payment session initiates successfully
       const updated = [newRide, ...rides]
       setRides(updated)
       const storageKey = `go_rapid_rides_${userEmail}`
       localStorage.setItem(storageKey, JSON.stringify(updated))
 
       if (data.url) {
-        window.location.href = data.url // Redirects to Stripe Checkout Dashboard
+        window.location.href = data.url
       } else {
         setIsLoading(false)
         alert(`Ride booked successfully! ID: ${randomId}`)
@@ -179,7 +216,6 @@ export default function DashboardPage() {
       }
     } catch (err) {
       setIsLoading(false)
-      // Fallback local save if offline/api error
       const updated = [newRide, ...rides]
       setRides(updated)
       const storageKey = `go_rapid_rides_${userEmail}`
@@ -199,7 +235,7 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-[#070b14] text-white p-4 sm:p-6 font-sans">
       <div className="max-w-7xl mx-auto">
         
-        {/* Responsive Header */}
+        {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 sm:mb-8 bg-[#111827]/60 p-4 rounded-2xl border border-gray-800">
           <div>
             <h1 className="text-xl sm:text-2xl font-black text-[#facc15] tracking-widest uppercase">
@@ -317,8 +353,9 @@ export default function DashboardPage() {
 
           </div>
         ) : (
-          /* Ride History */
-          <div className="max-w-4xl mx-auto">
+          /* Ride History View with View Receipt & Write Review buttons */
+          <div className="max-w-5xl mx-auto space-y-6">
+            
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-lg sm:text-xl font-bold text-gray-200">
                 Your Past Rides (<span className="text-[#facc15]">{userEmail}</span>)
@@ -326,7 +363,7 @@ export default function DashboardPage() {
               {rides.length > 0 && (
                 <button
                   onClick={handleClearHistory}
-                  className="bg-red-950/80 hover:bg-red-900 text-red-400 border border-red-800 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                  className="bg-red-950/80 hover:bg-red-900 text-red-400 border border-red-800 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
                 >
                   🗑️ Clear History
                 </button>
@@ -342,26 +379,54 @@ export default function DashboardPage() {
                 {rides.map((ride, index) => (
                   <div
                     key={index}
-                    className="bg-[#111827] border border-gray-800 rounded-2xl p-5 sm:p-6 shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
+                    className="bg-[#111827] border border-gray-800 rounded-2xl p-5 sm:p-6 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-5 hover:border-gray-700 transition-all"
                   >
-                    <div className="space-y-2">
+                    {/* Left Details */}
+                    <div className="space-y-2 flex-1">
                       <div className="flex items-center gap-3">
                         <span className="bg-[#facc15] text-black font-black px-3 py-1 rounded-lg text-xs">
                           {ride.id}
                         </span>
                         <span className="text-xs text-gray-400">{ride.date}</span>
                         <span className="bg-emerald-950 text-emerald-400 border border-emerald-800/50 text-[10px] font-bold px-2.5 py-0.5 rounded-full">
-                          {ride.status}
+                          {ride.status || 'Completed'}
                         </span>
                       </div>
+
                       <div className="text-sm space-y-1 text-gray-300">
                         <p><span className="text-red-400">🚗 From:</span> {ride.from || 'N/A'}</p>
                         <p><span className="text-gray-400">🏁 To:</span> {ride.to || 'N/A'}</p>
                       </div>
+
                       <p className="text-xs text-gray-400">
-                        Distance: <span className="text-white">{ride.distance}</span> | Fare: <span className="text-[#facc15]">{ride.fare}</span>
+                        Distance: <span className="text-white font-semibold">{ride.distance}</span> | Fare: <span className="text-[#facc15] font-bold">{ride.fare}</span>
                       </p>
+
+                      {ride.review && (
+                        <div className="mt-2 bg-[#0b0f19] p-2.5 rounded-xl border border-gray-800 text-xs text-gray-300">
+                          <span className="text-yellow-400">{'★'.repeat(ride.review.rating)}</span>
+                          <span className="text-gray-600">{'★'.repeat(5 - ride.review.rating)}</span>
+                          <p className="italic text-gray-400 mt-0.5">"{ride.review.text}"</p>
+                        </div>
+                      )}
                     </div>
+
+                    {/* Right Action Buttons */}
+                    <div className="flex items-center gap-2.5 w-full md:w-auto shrink-0 pt-3 md:pt-0 border-t md:border-t-0 border-gray-800">
+                      <button
+                        onClick={() => setSelectedReceipt(ride)}
+                        className="flex-1 md:flex-none bg-[#1f2937] hover:bg-gray-800 text-gray-200 border border-gray-700 px-4 py-2.5 rounded-xl font-bold text-xs transition-all cursor-pointer shadow-md text-center"
+                      >
+                        📄 View Receipt
+                      </button>
+                      <button
+                        onClick={() => setSelectedReviewRide(ride)}
+                        className="flex-1 md:flex-none bg-[#facc15] hover:bg-[#eab308] text-black px-4 py-2.5 rounded-xl font-extrabold text-xs transition-all cursor-pointer shadow-md text-center"
+                      >
+                        ⭐ Write Review
+                      </button>
+                    </div>
+
                   </div>
                 ))}
               </div>
@@ -370,6 +435,129 @@ export default function DashboardPage() {
         )}
 
       </div>
+
+      {/* View Receipt Modal */}
+      {selectedReceipt && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-[9999]">
+          <div className="bg-[#111827] border border-gray-800 rounded-2xl max-w-md w-full p-6 shadow-2xl relative">
+            <div className="flex justify-between items-center mb-4 border-b border-gray-800 pb-3">
+              <h3 className="font-extrabold text-base text-[#facc15] tracking-wider uppercase">
+                GO RAPID RECEIPT
+              </h3>
+              <button
+                onClick={() => setSelectedReceipt(null)}
+                className="text-gray-400 hover:text-white font-bold text-sm cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs text-gray-300">
+              <div className="flex justify-between">
+                <span className="text-gray-400">Ride ID:</span>
+                <span className="font-bold text-white">{selectedReceipt.id}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-400">Date:</span>
+                <span>{selectedReceipt.date}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-400">Pickup:</span>
+                <span className="text-white font-medium">{selectedReceipt.from}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-400">Dropoff:</span>
+                <span className="text-white font-medium">{selectedReceipt.to}</span>
+              </div>
+
+              <div className="border-t border-gray-800 pt-3 space-y-1.5">
+                <div className="flex justify-between">
+                  <span>Base Fare</span>
+                  <span className="text-white">₹50</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Distance ({selectedReceipt.distance})</span>
+                  <span className="text-white">₹{(selectedReceipt.fareNum || 110) - 50}</span>
+                </div>
+                <div className="flex justify-between font-bold text-sm text-white pt-2 border-t border-gray-800">
+                  <span>Total Paid</span>
+                  <span className="text-[#facc15]">{selectedReceipt.fare}</span>
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setSelectedReceipt(null)}
+              className="mt-6 w-full bg-[#facc15] text-black font-extrabold py-2.5 rounded-xl text-xs cursor-pointer"
+            >
+              Close Receipt
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Write Review Modal */}
+      {selectedReviewRide && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-[9999]">
+          <div className="bg-[#111827] border border-gray-800 rounded-2xl max-w-md w-full p-6 shadow-2xl relative">
+            <div className="flex justify-between items-center mb-4 border-b border-gray-800 pb-3">
+              <h3 className="font-extrabold text-base text-[#facc15] uppercase">
+                Write Review ({selectedReviewRide.id})
+              </h3>
+              <button
+                onClick={() => setSelectedReviewRide(null)}
+                className="text-gray-400 hover:text-white font-bold text-sm cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveReview} className="space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-gray-400 mb-2">
+                  Rating
+                </label>
+                <div className="flex gap-2">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => setReviewRating(star)}
+                      className={`text-2xl cursor-pointer transition-all ${
+                        star <= reviewRating ? 'text-yellow-400 scale-110' : 'text-gray-600'
+                      }`}
+                    >
+                      ★
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-400 mb-1.5">
+                  Your Feedback
+                </label>
+                <textarea
+                  required
+                  rows={3}
+                  placeholder="Kaisa tha apka ride experience?"
+                  value={reviewText}
+                  onChange={(e) => setReviewText(e.target.value)}
+                  className="w-full bg-[#0b0f19] border border-gray-800 rounded-xl p-3 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-[#facc15]"
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="w-full bg-[#facc15] hover:bg-[#eab308] text-black font-extrabold py-3 rounded-xl text-xs cursor-pointer shadow-lg transition-all"
+              >
+                Submit Review
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
     </div>
   )
 }
