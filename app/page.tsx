@@ -6,17 +6,7 @@ import { useUser } from '@clerk/nextjs'
 
 export default function DashboardPage() {
   const router = useRouter()
-  
-  // Safely get user info without crashing build
-  let userEmail = 'guest_user'
-  try {
-    const clerk = useUser()
-    if (clerk && clerk.user?.primaryEmailAddress?.emailAddress) {
-      userEmail = clerk.user.primaryEmailAddress.emailAddress
-    }
-  } catch (e) {
-    // Prerender fallback
-  }
+  const { user, isLoaded } = useUser()
 
   const [viewMode, setViewMode] = useState<'dashboard' | 'history'>('dashboard')
   const [pickup, setPickup] = useState('')
@@ -26,6 +16,11 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [isMounted, setIsMounted] = useState(false)
 
+  // Get actual user email once Clerk is loaded
+  const userEmail = isLoaded && user?.primaryEmailAddress?.emailAddress 
+    ? user.primaryEmailAddress.emailAddress 
+    : 'guest_user'
+
   const ratePerKm = 15
   const baseFare = 50
   const totalFare = baseFare + distance * ratePerKm
@@ -34,7 +29,7 @@ export default function DashboardPage() {
     setIsMounted(true)
   }, [])
 
-  // Load Leaflet Map dynamically using OpenStreetMap
+  // Load Leaflet Map dynamically
   useEffect(() => {
     if (viewMode === 'dashboard' && isMounted) {
       const link = document.createElement('link')
@@ -70,20 +65,16 @@ export default function DashboardPage() {
     }
   }, [viewMode, isMounted])
 
-  // Load saved rides specifically for the signed-in user email
+  // Load user-specific rides from localStorage
   useEffect(() => {
-    if (!isMounted) return
+    if (!isMounted || !userEmail) return
     const storageKey = `go_rapid_rides_${userEmail}`
     const saved = localStorage.getItem(storageKey)
     
     if (saved) {
       setRides(JSON.parse(saved))
     } else {
-      const initial = [
-        { id: 'GR-2467', date: '19 Oct 2026', status: 'Completed', from: 'Kat Kat Gate', to: 'Jafar Gate', distance: '10 KM', fare: '₹200' }
-      ]
-      setRides(initial)
-      localStorage.setItem(storageKey, JSON.stringify(initial))
+      setRides([])
     }
   }, [userEmail, isMounted])
 
@@ -143,28 +134,30 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#070b14] text-white p-6 font-sans">
+    <div className="min-h-screen bg-[#070b14] text-white p-4 sm:p-6 font-sans">
       <div className="max-w-7xl mx-auto">
         
-        {/* Top Header */}
-        <div className="flex items-center justify-between mb-8">
+        {/* Mobile & Desktop Responsive Header */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 sm:mb-8 bg-[#111827]/60 p-4 rounded-2xl border border-gray-800">
           <div>
-            <h1 className="text-2xl font-black text-[#facc15] tracking-widest uppercase">
+            <h1 className="text-xl sm:text-2xl font-black text-[#facc15] tracking-widest uppercase">
               GO RAPID
             </h1>
-            <p className="text-xs text-gray-400 mt-1">Logged in as: <span className="text-[#facc15]">{userEmail}</span></p>
+            <p className="text-xs text-gray-400 mt-1 truncate max-w-[250px] sm:max-w-none">
+              Logged in as: <span className="text-[#facc15] font-semibold">{userEmail}</span>
+            </p>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto">
             <button
               onClick={() => setViewMode(viewMode === 'dashboard' ? 'history' : 'dashboard')}
-              className="bg-[#111827] hover:bg-gray-800 text-yellow-400 border border-gray-800 px-5 py-2.5 rounded-xl font-bold text-xs transition-all cursor-pointer shadow-lg"
+              className="flex-1 sm:flex-none bg-[#1f2937] hover:bg-gray-800 text-yellow-400 border border-gray-700 px-3.5 sm:px-5 py-2.5 rounded-xl font-bold text-xs transition-all cursor-pointer text-center shadow-lg"
             >
-              {viewMode === 'dashboard' ? '📜 Manage Rides & History' : '🗺️ Back to Map & Book'}
+              {viewMode === 'dashboard' ? '📜 Rides & History' : '🗺️ Back to Map'}
             </button>
             <button
               onClick={() => router.push('/login')}
-              className="bg-[#facc15] hover:bg-[#eab308] text-black font-extrabold px-5 py-2.5 rounded-xl text-xs transition-all cursor-pointer shadow-lg"
+              className="bg-[#facc15] hover:bg-[#eab308] text-black font-extrabold px-4 sm:px-5 py-2.5 rounded-xl text-xs transition-all cursor-pointer shadow-lg shrink-0"
             >
               Sign Out
             </button>
@@ -172,26 +165,26 @@ export default function DashboardPage() {
         </div>
 
         {viewMode === 'dashboard' ? (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
             
-            {/* Left: Interactive OpenStreetMap */}
-            <div className="bg-[#111827]/90 border border-gray-800 rounded-2xl overflow-hidden h-[550px] shadow-2xl relative">
-              <div className="absolute top-4 left-4 z-[1000] bg-[#111827]/90 backdrop-blur-md px-4 py-2 rounded-xl border border-gray-800 text-xs font-semibold shadow-lg text-white">
-                📍 Chhatrapati Sambhajinagar, Maharashtra
+            {/* Left: Responsive Interactive Map */}
+            <div className="bg-[#111827]/90 border border-gray-800 rounded-2xl overflow-hidden h-[380px] sm:h-[550px] shadow-2xl relative">
+              <div className="absolute top-3 left-3 z-[1000] bg-[#111827]/90 backdrop-blur-md px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl border border-gray-800 text-[11px] sm:text-xs font-semibold shadow-lg text-white max-w-[85%] truncate">
+                📍 Chhatrapati Sambhajinagar
               </div>
               <div id="map-container" className="w-full h-full z-0 bg-[#0b0f19]"></div>
             </div>
 
             {/* Right: Booking Form with Stripe */}
-            <div className="bg-[#111827]/90 border border-gray-800 rounded-2xl p-8 shadow-2xl flex flex-col justify-between">
+            <div className="bg-[#111827]/90 border border-gray-800 rounded-2xl p-5 sm:p-8 shadow-2xl flex flex-col justify-between">
               <div>
-                <h2 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
+                <h2 className="text-base sm:text-lg font-bold text-white mb-5 flex items-center gap-2">
                   <span>💳</span> Book & Pay via Stripe
                 </h2>
 
-                <form onSubmit={handleStripePayment} className="space-y-5">
+                <form onSubmit={handleStripePayment} className="space-y-4 sm:space-y-5">
                   <div>
-                    <label className="block text-xs font-medium text-gray-400 mb-2">
+                    <label className="block text-xs font-medium text-gray-400 mb-1.5">
                       Pickup Location
                     </label>
                     <input
@@ -205,7 +198,7 @@ export default function DashboardPage() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-medium text-gray-400 mb-2">
+                    <label className="block text-xs font-medium text-gray-400 mb-1.5">
                       Dropoff Location
                     </label>
                     <input
@@ -219,7 +212,7 @@ export default function DashboardPage() {
                   </div>
 
                   <div>
-                    <div className="flex justify-between items-center mb-2">
+                    <div className="flex justify-between items-center mb-1.5">
                       <label className="text-xs font-medium text-gray-400">
                         Estimated Distance (KM)
                       </label>
@@ -252,7 +245,7 @@ export default function DashboardPage() {
                   <button
                     type="submit"
                     disabled={isLoading}
-                    className="w-full bg-[#facc15] hover:bg-[#eab308] text-black font-extrabold py-4 rounded-xl shadow-lg transition-all text-sm cursor-pointer disabled:opacity-50"
+                    className="w-full bg-[#facc15] hover:bg-[#eab308] text-black font-extrabold py-3.5 sm:py-4 rounded-xl shadow-lg transition-all text-sm cursor-pointer disabled:opacity-50"
                   >
                     {isLoading ? 'Processing Stripe Checkout...' : `Pay with Stripe & Book (₹{totalFare})`}
                   </button>
@@ -264,15 +257,19 @@ export default function DashboardPage() {
         ) : (
           /* User Isolated Ride History View */
           <div className="max-w-4xl mx-auto">
-            <h2 className="text-xl font-bold mb-6 text-gray-200">Your Past Rides ({userEmail})</h2>
+            <h2 className="text-lg sm:text-xl font-bold mb-6 text-gray-200">
+              Your Past Rides (<span className="text-[#facc15]">{userEmail}</span>)
+            </h2>
             {rides.length === 0 ? (
-              <p className="text-sm text-gray-400 bg-[#111827] p-6 rounded-2xl border border-gray-800 text-center">No ride history found for this account.</p>
+              <p className="text-sm text-gray-400 bg-[#111827] p-8 rounded-2xl border border-gray-800 text-center">
+                Is account par abhi tak koi past ride nahi hai. Nayi ride book karein!
+              </p>
             ) : (
               <div className="space-y-4">
                 {rides.map((ride, index) => (
                   <div
                     key={index}
-                    className="bg-[#111827] border border-gray-800 rounded-2xl p-6 shadow-xl flex items-center justify-between"
+                    className="bg-[#111827] border border-gray-800 rounded-2xl p-5 sm:p-6 shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
                   >
                     <div className="space-y-2">
                       <div className="flex items-center gap-3">
@@ -285,8 +282,8 @@ export default function DashboardPage() {
                         </span>
                       </div>
                       <div className="text-sm space-y-1 text-gray-300">
-                        <p><span className="text-red-400">🚗 From:</span> {ride.from}</p>
-                        <p><span className="text-gray-400">🏁 To:</span> {ride.to}</p>
+                        <p><span className="text-red-400">🚗 From:</span> {ride.from || 'N/A'}</p>
+                        <p><span className="text-gray-400">🏁 To:</span> {ride.to || 'N/A'}</p>
                       </div>
                       <p className="text-xs text-gray-400">
                         Distance: <span className="text-white">{ride.distance}</span> | Fare: <span className="text-[#facc15]">{ride.fare}</span>
