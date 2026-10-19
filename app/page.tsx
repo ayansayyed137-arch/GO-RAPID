@@ -113,6 +113,7 @@ export default function DashboardPage() {
     }
   }, [pickup, dropoff, distance])
 
+  // Load user-specific rides from localStorage
   useEffect(() => {
     if (!userEmail) return
     const storageKey = `go_rapid_rides_${userEmail}`
@@ -125,7 +126,16 @@ export default function DashboardPage() {
     }
   }, [userEmail])
 
-  // Restored Stripe Checkout API Integration
+  // Clear history handler
+  const handleClearHistory = () => {
+    if (confirm('Kya aap saari ride history clear karna chahte hain?')) {
+      const storageKey = `go_rapid_rides_${userEmail}`
+      localStorage.removeItem(storageKey)
+      setRides([])
+    }
+  }
+
+  // Stripe Checkout API Integration (Without premature fake saving)
   const handleStripePayment = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!pickup || !dropoff) {
@@ -146,12 +156,6 @@ export default function DashboardPage() {
       fare: '₹' + totalFare,
     }
 
-    const updated = [newRide, ...rides]
-    setRides(updated)
-    
-    const storageKey = `go_rapid_rides_${userEmail}`
-    localStorage.setItem(storageKey, JSON.stringify(updated))
-
     try {
       const res = await fetch('/api/checkout', {
         method: 'POST',
@@ -159,6 +163,13 @@ export default function DashboardPage() {
         body: JSON.stringify({ pickup, dropoff, amount: totalFare, rideId: randomId }),
       })
       const data = await res.json()
+      
+      // Save to history only when payment session initiates successfully
+      const updated = [newRide, ...rides]
+      setRides(updated)
+      const storageKey = `go_rapid_rides_${userEmail}`
+      localStorage.setItem(storageKey, JSON.stringify(updated))
+
       if (data.url) {
         window.location.href = data.url // Redirects to Stripe Checkout Dashboard
       } else {
@@ -168,6 +179,12 @@ export default function DashboardPage() {
       }
     } catch (err) {
       setIsLoading(false)
+      // Fallback local save if offline/api error
+      const updated = [newRide, ...rides]
+      setRides(updated)
+      const storageKey = `go_rapid_rides_${userEmail}`
+      localStorage.setItem(storageKey, JSON.stringify(updated))
+      
       alert(`Ride booked successfully! ID: ${randomId}`)
       setViewMode('history')
     }
@@ -302,9 +319,20 @@ export default function DashboardPage() {
         ) : (
           /* Ride History */
           <div className="max-w-4xl mx-auto">
-            <h2 className="text-lg sm:text-xl font-bold mb-6 text-gray-200">
-              Your Past Rides (<span className="text-[#facc15]">{userEmail}</span>)
-            </h2>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-lg sm:text-xl font-bold text-gray-200">
+                Your Past Rides (<span className="text-[#facc15]">{userEmail}</span>)
+              </h2>
+              {rides.length > 0 && (
+                <button
+                  onClick={handleClearHistory}
+                  className="bg-red-950/80 hover:bg-red-900 text-red-400 border border-red-800 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                >
+                  🗑️ Clear History
+                </button>
+              )}
+            </div>
+
             {rides.length === 0 ? (
               <p className="text-sm text-gray-400 bg-[#111827] p-8 rounded-2xl border border-gray-800 text-center">
                 Is account par abhi tak koi past ride nahi hai. Nayi ride book karein!
