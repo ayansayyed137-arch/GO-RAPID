@@ -1,30 +1,32 @@
 'use client'
 
+export const dynamic = 'force-dynamic'
+
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import dynamic from 'next/dynamic'
 
-function DashboardContent() {
+export default function DashboardPage() {
   const router = useRouter()
   
-  // Dynamic import of Clerk hook inside component to avoid build prerender failure
-  const { useUser } = require('@clerk/nextjs')
-  const { user, isLoaded } = useUser()
-
   const [viewMode, setViewMode] = useState<'dashboard' | 'history'>('dashboard')
   const [pickup, setPickup] = useState('')
   const [dropoff, setDropoff] = useState('')
   const [distance, setDistance] = useState(10)
   const [rides, setRides] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(false)
+  const [userEmail, setUserEmail] = useState('user@gorapid.com')
 
-  const userEmail = isLoaded && user?.primaryEmailAddress?.emailAddress 
-    ? user.primaryEmailAddress.emailAddress 
-    : 'guest_user'
-
-  const ratePerKm = 15
-  const baseFare = 50
-  const totalFare = baseFare + distance * ratePerKm
+  // Get user session from localStorage or default
+  useEffect(() => {
+    const savedUser = localStorage.getItem('go_rapid_user')
+    if (savedUser) {
+      setUserEmail(savedUser)
+    } else {
+      const email = prompt('Enter your email or username to continue:') || 'user@gorapid.com'
+      localStorage.setItem('go_rapid_user', email)
+      setUserEmail(email)
+    }
+  }, [])
 
   // Load Leaflet Map dynamically
   useEffect(() => {
@@ -92,7 +94,7 @@ function DashboardContent() {
       from: pickup,
       to: dropoff,
       distance: distance + ' KM',
-      fare: '₹' + totalFare,
+      fare: '₹' + (50 + distance * 15),
     }
 
     const updated = [newRide, ...rides]
@@ -105,7 +107,7 @@ function DashboardContent() {
       const res = await fetch('/api/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pickup, dropoff, amount: totalFare, rideId: randomId }),
+        body: JSON.stringify({ pickup, dropoff, amount: 50 + distance * 15, rideId: randomId }),
       })
       const data = await res.json()
       if (data.url) {
@@ -120,6 +122,11 @@ function DashboardContent() {
       alert(`Ride successfully booked! ID: ${randomId}`)
       setViewMode('history')
     }
+  }
+
+  const handleSignOut = () => {
+    localStorage.removeItem('go_rapid_user')
+    router.push('/login')
   }
 
   return (
@@ -145,7 +152,7 @@ function DashboardContent() {
               {viewMode === 'dashboard' ? '📜 Rides & History' : '🗺️ Back to Map'}
             </button>
             <button
-              onClick={() => router.push('/login')}
+              onClick={handleSignOut}
               className="bg-[#facc15] hover:bg-[#eab308] text-black font-extrabold px-4 sm:px-5 py-2.5 rounded-xl text-xs transition-all cursor-pointer shadow-lg shrink-0"
             >
               Sign Out
@@ -205,7 +212,7 @@ function DashboardContent() {
                       <label className="text-xs font-medium text-gray-400">
                         Estimated Distance (KM)
                       </label>
-                      <span className="text-xs text-[#facc15] font-semibold">Rate: ₹{ratePerKm}/km</span>
+                      <span className="text-xs text-[#facc15] font-semibold">Rate: ₹15/km</span>
                     </div>
                     <input
                       type="number"
@@ -219,15 +226,15 @@ function DashboardContent() {
                   <div className="bg-[#0b0f19] border border-gray-800/80 rounded-xl p-4 space-y-2 text-xs text-gray-400">
                     <div className="flex justify-between">
                       <span>Base Fare</span>
-                      <span className="text-white">₹{baseFare}</span>
+                      <span className="text-white">₹50</span>
                     </div>
                     <div className="flex justify-between">
-                      <span>Distance ({distance} KM × ₹{ratePerKm})</span>
-                      <span className="text-white">₹{distance * ratePerKm}</span>
+                      <span>Distance ({distance} KM × ₹15)</span>
+                      <span className="text-white">₹{distance * 15}</span>
                     </div>
                     <div className="border-t border-gray-800 pt-2 flex justify-between text-sm font-bold text-white">
                       <span>Total Fare</span>
-                      <span className="text-[#facc15]">₹{totalFare}</span>
+                      <span className="text-[#facc15]">₹{50 + distance * 15}</span>
                     </div>
                   </div>
 
@@ -236,7 +243,7 @@ function DashboardContent() {
                     disabled={isLoading}
                     className="w-full bg-[#facc15] hover:bg-[#eab308] text-black font-extrabold py-3.5 sm:py-4 rounded-xl shadow-lg transition-all text-sm cursor-pointer disabled:opacity-50"
                   >
-                    {isLoading ? 'Processing Stripe Checkout...' : `Pay with Stripe & Book (₹{totalFare})`}
+                    {isLoading ? 'Processing Stripe Checkout...' : `Pay with Stripe & Book (₹{50 + distance * 15})`}
                   </button>
                 </form>
               </div>
@@ -288,18 +295,4 @@ function DashboardContent() {
       </div>
     </div>
   )
-}
-
-// Disabling SSR at the bottom export ensures Vercel bypasses static prerendering entirely!
-const DynamicDashboard = dynamic(() => Promise.resolve(DashboardContent), {
-  ssr: false,
-  loading: () => (
-    <div className="min-h-screen bg-[#070b14] flex items-center justify-center text-yellow-400 font-bold">
-      Loading GoRapid...
-    </div>
-  ),
-})
-
-export default function Page() {
-  return <DynamicDashboard />
 }
