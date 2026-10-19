@@ -2,9 +2,13 @@
 
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { useUser } from '@clerk/nextjs'
 
 export default function DashboardPage() {
   const router = useRouter()
+  const { user } = useUser()
+  const userEmail = user?.primaryEmailAddress?.emailAddress || 'guest_user'
+
   const [viewMode, setViewMode] = useState<'dashboard' | 'history'>('dashboard')
   const [pickup, setPickup] = useState('')
   const [dropoff, setDropoff] = useState('')
@@ -16,7 +20,7 @@ export default function DashboardPage() {
   const baseFare = 50
   const totalFare = baseFare + distance * ratePerKm
 
-  // Load Leaflet CSS and Map dynamically using OpenStreetMap
+  // Load Leaflet Map dynamically using OpenStreetMap
   useEffect(() => {
     if (viewMode === 'dashboard') {
       const link = document.createElement('link')
@@ -52,25 +56,27 @@ export default function DashboardPage() {
     }
   }, [viewMode])
 
-  // Load saved rides from localStorage
+  // Load saved rides specifically for the signed-in user email from localStorage
   useEffect(() => {
-    const saved = localStorage.getItem('go_rapid_rides')
+    if (!userEmail) return
+    const storageKey = `go_rapid_rides_${userEmail}`
+    const saved = localStorage.getItem(storageKey)
+    
     if (saved) {
       setRides(JSON.parse(saved))
     } else {
       const initial = [
-        { id: 'GR-2467', date: '19 Oct 2026', status: 'Completed', from: 'Kat Kat Gate', to: 'Jafar Gate', distance: '10 KM', fare: '₹200' },
-        { id: 'GR-5279', date: '19 Oct 2026', status: 'Completed', from: 'Kat Kat Gate', to: 'Jafar Gate', distance: '10 KM', fare: '₹200' }
+        { id: 'GR-2467', date: '19 Oct 2026', status: 'Completed', from: 'Kat Kat Gate', to: 'Jafar Gate', distance: '10 KM', fare: '₹200' }
       ]
       setRides(initial)
-      localStorage.setItem('go_rapid_rides', JSON.stringify(initial))
+      localStorage.setItem(storageKey, JSON.stringify(initial))
     }
-  }, [])
+  }, [userEmail])
 
   const handleStripePayment = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!pickup || !dropoff) {
-      alert('Please enter pickup and dropoff locations.')
+      alert('Kripya pickup aur dropoff location daalein.')
       return
     }
 
@@ -89,7 +95,9 @@ export default function DashboardPage() {
 
     const updated = [newRide, ...rides]
     setRides(updated)
-    localStorage.setItem('go_rapid_rides', JSON.stringify(updated))
+    
+    const storageKey = `go_rapid_rides_${userEmail}`
+    localStorage.setItem(storageKey, JSON.stringify(updated))
 
     try {
       const res = await fetch('/api/checkout', {
@@ -102,12 +110,12 @@ export default function DashboardPage() {
         window.location.href = data.url
       } else {
         setIsLoading(false)
-        alert(`Ride booked successfully via Stripe simulation! ID: ${randomId}`)
+        alert(`Ride successfully book ho gayi! ID: ${randomId}`)
         setViewMode('history')
       }
     } catch (err) {
       setIsLoading(false)
-      alert(`Ride booked successfully! ID: ${randomId}`)
+      alert(`Ride successfully book ho gayi! ID: ${randomId}`)
       setViewMode('history')
     }
   }
@@ -118,9 +126,15 @@ export default function DashboardPage() {
         
         {/* Top Header */}
         <div className="flex items-center justify-between mb-8">
-          <h1 className="text-2xl font-black text-[#facc15] tracking-widest uppercase">
-            GO RAPID
-          </h1>
+          <div>
+            <h1 className="text-2xl font-black text-[#facc15] tracking-widest uppercase">
+              GO RAPID
+            </h1>
+            {user && (
+              <p className="text-xs text-gray-400 mt-1">Logged in as: <span className="text-[#facc15]">{userEmail}</span></p>
+            )}
+          </div>
+
           <div className="flex items-center gap-4">
             <button
               onClick={() => setViewMode(viewMode === 'dashboard' ? 'history' : 'dashboard')}
@@ -228,36 +242,40 @@ export default function DashboardPage() {
 
           </div>
         ) : (
-          /* Ride History View */
+          /* Ride History View for Current User Only */
           <div className="max-w-4xl mx-auto">
-            <h2 className="text-xl font-bold mb-6 text-gray-200">Your Past Rides</h2>
-            <div className="space-y-4">
-              {rides.map((ride, index) => (
-                <div
-                  key={index}
-                  className="bg-[#111827] border border-gray-800 rounded-2xl p-6 shadow-xl flex items-center justify-between"
-                >
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-3">
-                      <span className="bg-[#facc15] text-black font-black px-3 py-1 rounded-lg text-xs">
-                        {ride.id}
-                      </span>
-                      <span className="text-xs text-gray-400">{ride.date}</span>
-                      <span className="bg-emerald-950 text-emerald-400 border border-emerald-800/50 text-[10px] font-bold px-2.5 py-0.5 rounded-full">
-                        {ride.status}
-                      </span>
+            <h2 className="text-xl font-bold mb-6 text-gray-200">Your Past Rides ({userEmail})</h2>
+            {rides.length === 0 ? (
+              <p className="text-sm text-gray-400 bg-[#111827] p-6 rounded-2xl border border-gray-800 text-center">Is account par abhi tak koi ride history nahi hai.</p>
+            ) : (
+              <div className="space-y-4">
+                {rides.map((ride, index) => (
+                  <div
+                    key={index}
+                    className="bg-[#111827] border border-gray-800 rounded-2xl p-6 shadow-xl flex items-center justify-between"
+                  >
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-3">
+                        <span className="bg-[#facc15] text-black font-black px-3 py-1 rounded-lg text-xs">
+                          {ride.id}
+                        </span>
+                        <span className="text-xs text-gray-400">{ride.date}</span>
+                        <span className="bg-emerald-950 text-emerald-400 border border-emerald-800/50 text-[10px] font-bold px-2.5 py-0.5 rounded-full">
+                          {ride.status}
+                        </span>
+                      </div>
+                      <div className="text-sm space-y-1 text-gray-300">
+                        <p><span className="text-red-400">🚗 From:</span> {ride.from}</p>
+                        <p><span className="text-gray-400">🏁 To:</span> {ride.to}</p>
+                      </div>
+                      <p className="text-xs text-gray-400">
+                        Distance: <span className="text-white">{ride.distance}</span> | Fare: <span className="text-[#facc15]">{ride.fare}</span>
+                      </p>
                     </div>
-                    <div className="text-sm space-y-1 text-gray-300">
-                      <p><span className="text-red-400">🚗 From:</span> {ride.from}</p>
-                      <p><span className="text-gray-400">🏁 To:</span> {ride.to}</p>
-                    </div>
-                    <p className="text-xs text-gray-400">
-                      Distance: <span className="text-white">{ride.distance}</span> | Fare: <span className="text-[#facc15]">{ride.fare}</span>
-                    </p>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
